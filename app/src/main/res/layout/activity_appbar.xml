@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+                android:orientation="vertical"
+                android:gravity="center"
+                android:background="@color/btColor"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent">
+
+    <LinearLayout
+        android:orientation="horizontal"
+        android:gravity="center"
+        android:layout_marginLeft="8dp"
+        android:layout_alignParentLeft="true"
+        android:layout_width="wrap_content"
+        android:layout_height="match_parent">
+        <ImageView
+            android:src="@drawable/ic_launcher"
+            android:scaleType="centerInside"
+            android:layout_marginRight="8dp"
+            android:layout_width="34dp"
+            android:layout_height="34dp" />
+        <TextView
+            android:text="@string/app"
+            android:textSize="20dp"
+            android:textColor="@color/textColor"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:orientation="horizontal"
+        android:gravity="center"
+        android:layout_alignParentRight="true"
+        android:layout_width="wrap_content"
+        android:layout_height="match_parent">
+        <Button
+            android:id="@+id/btnScan"
+            android:text="SCAN"
+            android:textSize="13dp"
+            android:textColor="@color/textColor"
+            style="?android:attr/borderlessButtonStyle"
+            android:background="@drawable/app_btn"
+            android:layout_width="50dp"
+            android:layout_height="match_parent"/>
+        <Button
+            android:id="@+id/btnClose"
+            android:text="CLOSE"
+            android:textSize="13dp"
+            android:textColor="@color/textColor"
+            android:background="@drawable/app_btn"
+            style="?android:attr/borderlessButtonStyle"
+            android:layout_width="60dp"
+            android:layout_height="match_parent"/>
+    </LinearLayout>
+
+</RelativeLayout>

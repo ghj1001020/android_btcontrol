@@ -1,0 +1,15 @@
+<resources>
+
+    <!-- Base application theme. -->
+    <style name="AppTheme" parent="Theme.AppCompat.Light.DarkActionBar">
+        <!-- Customize your theme here. -->
+        <item name="colorPrimary">@color/btColor</item>
+        <item name="colorPrimaryDark">@color/btColor</item>
+        <item name="colorAccent">@color/btColor</item>
+
+        <!--액션바 밑의 그림자를 없앤다-->
+        <item name="android:windowContentOverlay">@null</item>
+        <item name="android:windowActionModeOverlay">@null</item>
+    </style>
+
+</resources>

@@ -1,0 +1,6 @@
+<resources>
+    <string name="app">블루투스</string>
+    <string name="app_name">블루투스 컨트롤</string>
+
+    <string name="requestBTEnable">블루투스를 활성화 시키세요.</string>
+</resources>
