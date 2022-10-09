@@ -7,10 +7,14 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
-import android.support.annotation.NonNull;
-import android.support.v4.app.ActivityCompat;
-import android.support.v4.content.ContextCompat;
-import android.support.v7.app.AppCompatActivity;
+import android.view.animation.Animation;
+import android.view.animation.AnimationUtils;
+import android.widget.ImageView;
+
+import androidx.annotation.NonNull;
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
+import androidx.appcompat.app.AppCompatActivity;
 
 import cn.pedant.SweetAlert.SweetAlertDialog;
 
@@ -21,11 +25,17 @@ public class LoadingActivity extends AppCompatActivity {
 
     final int PERMISSION_REQUEST_CODE = 1;
 
+    ImageView imgIntro;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_loading);
+
+        imgIntro = findViewById(R.id.imgIntro);
+        Animation scaleAnim = AnimationUtils.loadAnimation(this, R.anim.anim_scale);
+        imgIntro.startAnimation(scaleAnim);
 
         CheckPermission();
     }
@@ -52,18 +62,20 @@ public class LoadingActivity extends AppCompatActivity {
      */
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
-        switch (requestCode){
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+
+        switch (requestCode) {
             case PERMISSION_REQUEST_CODE:
                 boolean result = true;
-                for(int grant : grantResults){
-                    if(grant!=PackageManager.PERMISSION_GRANTED){
+                for (int grant : grantResults) {
+                    if (grant != PackageManager.PERMISSION_GRANTED) {
                         result = false;
                         break;
                     }
                 }
-                if(result){
+                if (result) {
                     GoToMain();
-                }else{
+                } else {
                     new SweetAlertDialog(this)
                             .setTitleText("권한이 필요합니다.")
                             .setConfirmText("확인")
@@ -90,7 +102,7 @@ public class LoadingActivity extends AppCompatActivity {
                 startActivity(intent);
                 finish();
             }
-        }.sendEmptyMessageDelayed(0, 1000);
+        }.sendEmptyMessageDelayed(0, 1800);
     }
 
 

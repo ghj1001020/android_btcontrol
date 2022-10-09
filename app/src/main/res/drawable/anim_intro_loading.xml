@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<animation-list xmlns:android="http://schemas.android.com/apk/res/android"
+    android:oneshot="false">
+
+    <item android:drawable="@drawable/anim_intro1" android:duration="100" />
+    <item android:drawable="@drawable/anim_intro2" android:duration="100" />
+    <item android:drawable="@drawable/anim_intro3" android:duration="100" />
+    <item android:drawable="@drawable/anim_intro4" android:duration="100" />
+    <item android:drawable="@drawable/anim_intro5" android:duration="100" />
+    <item android:drawable="@drawable/anim_intro6" android:duration="100" />
+    <item android:drawable="@drawable/anim_intro7" android:duration="100" />
+    <item android:drawable="@drawable/anim_intro8" android:duration="100" />
+    <item android:drawable="@drawable/anim_intro9" android:duration="100" />
+    <item android:drawable="@drawable/anim_intro10" android:duration="100" />
+    <item android:drawable="@drawable/anim_intro11" android:duration="100" />
+    <item android:drawable="@drawable/anim_intro12" android:duration="100" />
+    <item android:drawable="@drawable/anim_intro13" android:duration="100" />
+    <item android:drawable="@drawable/anim_intro14" android:duration="100" />
+    <item android:drawable="@drawable/anim_intro15" android:duration="100" />
+    <item android:drawable="@drawable/anim_intro16" android:duration="100" />
+    <item android:drawable="@drawable/anim_intro17" android:duration="100" />
+
+</animation-list>
