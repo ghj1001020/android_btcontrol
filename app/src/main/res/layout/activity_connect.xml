@@ -224,7 +224,7 @@
 
     <!-- 설정 툴팁 -->
     <ScrollView
-        android:visibility="gone"
+        android:visibility="visible"
         android:layout_alignParentTop="true"
         android:layout_alignParentRight="true"
         android:layout_marginRight="25dp"

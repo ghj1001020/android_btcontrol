@@ -1,11 +1,19 @@
 package com.ghj.btcontrol;
 
+import android.app.Activity;
 import android.app.ProgressDialog;
 import android.bluetooth.BluetoothDevice;
 import android.content.Intent;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
+
+import androidx.activity.result.ActivityResult;
+import androidx.activity.result.ActivityResultCallback;
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContract;
+import androidx.activity.result.contract.ActivityResultContracts;
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.ActionBar;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
@@ -29,9 +37,13 @@ import com.ghj.btcontrol.data.BluetoothData;
 
 import java.util.List;
 
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends BaseActivity {
 
     final int CONNECT_ACTIVITY_REQUEST_CODE = 100;
+
+    MainActivity mActivity;
+
+    Handler mBTHandler = new BTHandler();
 
     Button btnScan, btnClose;
     TextView txtStatus, txtNoDevice;
@@ -46,6 +58,20 @@ public class MainActivity extends AppCompatActivity {
 
     BluetoothService mBTService;
 
+    ActivityResultLauncher<Intent> mConnectActivityResult = registerForActivityResult(
+            new ActivityResultContracts.StartActivityForResult(),
+            new ActivityResultCallback<ActivityResult>() {
+                @Override
+                public void onActivityResult(ActivityResult result) {
+                    if(result.getResultCode() == Activity.RESULT_OK) {
+                        mBTService = BluetoothService.getBluetoothService(mActivity, mBTHandler);
+                        mBTService.runListening();
+                        init();
+                    }
+                }
+            }
+    );
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -54,6 +80,8 @@ public class MainActivity extends AppCompatActivity {
 
         //액션바
         SetCustomActionBar();
+
+        mActivity = this;
 
         //UI
         txtStatus = (TextView)findViewById(R.id.txtStatus);
@@ -90,6 +118,11 @@ public class MainActivity extends AppCompatActivity {
 
         //초기화
         init();
+    }
+
+    @Override
+    public void onCreateAfter() {
+
     }
 
 
@@ -248,9 +281,9 @@ public class MainActivity extends AppCompatActivity {
     /**
      * @desc 블루투스 콜백 핸들러
      */
-    Handler mBTHandler = new Handler(){
+    class BTHandler extends Handler {
         @Override
-        public void handleMessage(Message msg) {
+        public void handleMessage(@NonNull Message msg) {
             if(msg.what == BluetoothService.STATE_ON_HANDLER_CODE){
                 boxPaired.setVisibility(View.VISIBLE);
                 boxDevices.setVisibility(View.VISIBLE);
@@ -358,16 +391,20 @@ public class MainActivity extends AppCompatActivity {
             }
             else if(msg.what == BluetoothService.CONNECT_SUCCESS_CLIENT_HANDLER_CODE){
                 pdConnect.dismiss();
-                Intent intent = new Intent(MainActivity.this, ConnectActivity.class);
-                startActivityForResult(intent, CONNECT_ACTIVITY_REQUEST_CODE);
+//                Intent intent = new Intent(MainActivity.this, ConnectActivity.class);
+//                startActivityForResult(intent, CONNECT_ACTIVITY_REQUEST_CODE);
+                Intent intent = new Intent(mActivity, ConnectActivity.class);
+                mConnectActivityResult.launch(intent);
             }
             else if(msg.what == BluetoothService.CONNECT_SUCCESS_MASTER_HANDLER_CODE){
                 pdConnect.dismiss();
             }
             else if(msg.what == BluetoothService.CONNECT_SUCCESS_ACL_HANDLER_CODE){
                 pdConnect.dismiss();
-                Intent intent = new Intent(MainActivity.this, ConnectActivity.class);
-                startActivityForResult(intent, CONNECT_ACTIVITY_REQUEST_CODE);
+//                Intent intent = new Intent(MainActivity.this, ConnectActivity.class);
+//                startActivityForResult(intent, CONNECT_ACTIVITY_REQUEST_CODE);
+                Intent intent = new Intent(mActivity, ConnectActivity.class);
+                mConnectActivityResult.launch(intent);
             }
             else if(msg.what == BluetoothService.CONNECT_FAIL_HANDLER_CODE){
                 pdConnect.dismiss();
@@ -382,11 +419,12 @@ public class MainActivity extends AppCompatActivity {
                 pdConnect.dismiss();
             }
         }
-    };
+    }
 
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
         if(requestCode == CONNECT_ACTIVITY_REQUEST_CODE){
             mBTService = BluetoothService.getBluetoothService(this, mBTHandler);
             mBTService.runListening();

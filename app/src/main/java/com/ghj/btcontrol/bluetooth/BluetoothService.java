@@ -1,5 +1,6 @@
 package com.ghj.btcontrol.bluetooth;
 
+import android.Manifest;
 import android.app.Activity;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
@@ -9,10 +10,15 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
 import android.util.Log;
+
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
+import androidx.core.content.PackageManagerCompat;
 
 import com.ghj.btcontrol.data.BTCConstants;
 
@@ -70,15 +76,16 @@ public class BluetoothService {
     boolean isFailed;
     boolean isBondRequest;
 
+    BluetoothServerThread mBluetoothServerThread;
     BluetoothDataThread mBluetoothDataThread;
 
 
-    public static BluetoothService getBluetoothService(Activity activity, Handler handler){
-        if(instance==null){
-            synchronized (BluetoothService.class){
+    public static BluetoothService getBluetoothService(Activity activity, Handler handler) {
+        if (instance == null) {
+            synchronized (BluetoothService.class) {
                 instance = new BluetoothService(activity, handler);
             }
-        }else{
+        } else {
             instance.setActivity(activity);
             instance.setHandler(handler);
         }
@@ -86,16 +93,16 @@ public class BluetoothService {
         return instance;
     }
 
-    private void setActivity(Activity activity){
+    private void setActivity(Activity activity) {
         this.mActivity = activity;
     }
 
-    private void setHandler(Handler handler){
+    private void setHandler(Handler handler) {
         this.mHandler = handler;
     }
 
 
-    private BluetoothService(Activity activity, Handler handler){
+    private BluetoothService(Activity activity, Handler handler) {
         this.mActivity = activity;
         this.mHandler = handler;
         mBTAdapter = BluetoothAdapter.getDefaultAdapter();
@@ -109,8 +116,8 @@ public class BluetoothService {
 
 
     //블루투스 리시버 등록
-    public boolean onRegisterBluetooth(){
-        if(getDeviceState()) {
+    public boolean onRegisterBluetooth() {
+        if (getDeviceState()) {
             IntentFilter filter = new IntentFilter();
             filter.addAction(BluetoothAdapter.ACTION_STATE_CHANGED);
             filter.addAction(BluetoothAdapter.ACTION_DISCOVERY_STARTED);
@@ -129,28 +136,32 @@ public class BluetoothService {
 
 
     //블루투스 지원 유무 확인
-    public boolean getDeviceState(){
-        if(mBTAdapter == null){
+    public boolean getDeviceState() {
+        if (mBTAdapter == null) {
             return false;
-        }else{
+        } else {
             return true;
         }
     }
 
 
     //블루투스 활성화
-    public void enableBluetooth(){
-        if(!mBTAdapter.isEnabled()){
-            mBTAdapter.enable();
+    public void enableBluetooth() {
+        if( ContextCompat.checkSelfPermission(mActivity, Manifest.permission.BLUETOOTH_CONNECT) == PackageManager.PERMISSION_GRANTED ) {
+            if (!mBTAdapter.isEnabled()) {
+                mBTAdapter.enable();
+            }
         }
     }
 
     //블루투스 비활성화
     public void disableBluetooth(){
-        if(mBTAdapter.isEnabled()){
-            cancelScanDevice();
-            closeSocket();
-            mBTAdapter.disable();
+        if( ContextCompat.checkSelfPermission(mActivity, Manifest.permission.BLUETOOTH_CONNECT) == PackageManager.PERMISSION_GRANTED ) {
+            if(mBTAdapter.isEnabled()){
+                cancelScanDevice();
+                closeSocket();
+                mBTAdapter.disable();
+            }
         }
     }
 
@@ -162,33 +173,41 @@ public class BluetoothService {
 
     //기기 검색하기
     public void startScanDevice(){
-        if(mBTAdapter.isEnabled() && !mBTAdapter.isDiscovering()){
-            mBTAdapter.startDiscovery();
+        if( ContextCompat.checkSelfPermission(mActivity, Manifest.permission.BLUETOOTH_SCAN) == PackageManager.PERMISSION_GRANTED ) {
+            if(mBTAdapter.isEnabled() && !mBTAdapter.isDiscovering()){
+                mBTAdapter.startDiscovery();
+            }
         }
     }
 
     //기기 검색하기 중지
     public void cancelScanDevice(){
-        if(mBTAdapter.isDiscovering()){
-            mBTAdapter.cancelDiscovery();
+        if( ContextCompat.checkSelfPermission(mActivity, Manifest.permission.BLUETOOTH_SCAN) == PackageManager.PERMISSION_GRANTED ) {
+            if(mBTAdapter.isDiscovering()){
+                mBTAdapter.cancelDiscovery();
+            }
         }
     }
 
     //등록된 디바이스 검색
     public List<BluetoothDevice> getBondedDevice(){
         mBonded.clear();
-        Set<BluetoothDevice> devices = mBTAdapter.getBondedDevices();
-        for(BluetoothDevice device : devices){
-            mBonded.add(device);
+        if( ContextCompat.checkSelfPermission(mActivity, Manifest.permission.BLUETOOTH_SCAN) == PackageManager.PERMISSION_GRANTED ) {
+            Set<BluetoothDevice> devices = mBTAdapter.getBondedDevices();
+            for(BluetoothDevice device : devices){
+                mBonded.add(device);
+            }
         }
         return mBonded;
     }
 
     //페어링 요청
     public boolean requestBond(BluetoothDevice device){
-        if(device.getBondState() == BluetoothDevice.BOND_NONE){
-            //API 19이상
-            return device.createBond();
+        if( ContextCompat.checkSelfPermission(mActivity, Manifest.permission.BLUETOOTH_SCAN) == PackageManager.PERMISSION_GRANTED ) {
+            if(device.getBondState() == BluetoothDevice.BOND_NONE){
+                //API 19이상
+                return device.createBond();
+            }
         }
         return false;
     }
@@ -206,16 +225,18 @@ public class BluetoothService {
 
     //블루투스 연결
     public void requestConnect(BluetoothDevice device){
-        cancelScanDevice();
-        closeSocket();
+        if( ContextCompat.checkSelfPermission(mActivity, Manifest.permission.BLUETOOTH_SCAN) == PackageManager.PERMISSION_GRANTED ) {
+            cancelScanDevice();
+            closeSocket();
 
-        UUID uuid = UUID.fromString( BTCConstants.SERIAL_PORT_SERVICE_UUID );
-        try{
-            mSocket = device.createRfcommSocketToServiceRecord(uuid);
-            runConnect();
-        }catch (IOException e){
-            e.printStackTrace();
-            connectFailed(e.getMessage());
+            UUID uuid = UUID.fromString( BTCConstants.SERIAL_PORT_SERVICE_UUID );
+            try{
+                mSocket = device.createRfcommSocketToServiceRecord(uuid);
+                runConnect();
+            }catch (IOException e){
+                e.printStackTrace();
+                connectFailed(e.getMessage());
+            }
         }
     }
 
@@ -262,16 +283,18 @@ public class BluetoothService {
             public void run() {
                 try{
                     isFailed = false;
-                    if(!mSocket.isConnected()){
-                        mSocket.connect();
-                        mBluetoothDataThread = new BluetoothDataThread(mSocket);
-                        mBluetoothDataThread.start();
-                        BluetoothDevice device = mSocket.getRemoteDevice();
-                        Intent intent = new Intent(BTCConstants.BLUETOOTH_CONNECT_BROADCAST_ACTION);
-                        Bundle bundle = new Bundle();
-                        bundle.putParcelable("device", device);
-                        intent.putExtras(bundle);
-                        mActivity.sendBroadcast(intent);
+                    if( ContextCompat.checkSelfPermission(mActivity, Manifest.permission.BLUETOOTH_SCAN) == PackageManager.PERMISSION_GRANTED ) {
+                        if(!mSocket.isConnected()){
+                            mSocket.connect();
+                            mBluetoothDataThread = new BluetoothDataThread(mSocket);
+                            mBluetoothDataThread.start();
+                            BluetoothDevice device = mSocket.getRemoteDevice();
+                            Intent intent = new Intent(BTCConstants.BLUETOOTH_CONNECT_BROADCAST_ACTION);
+                            Bundle bundle = new Bundle();
+                            bundle.putParcelable("device", device);
+                            intent.putExtras(bundle);
+                            mActivity.sendBroadcast(intent);
+                        }
                     }
                 }catch (IOException e){
                     e.printStackTrace();
@@ -287,35 +310,8 @@ public class BluetoothService {
             return;
         }
 
-        new Thread(){
-            @Override
-            public void run() {
-                isClose = false;
-                isFailed = false;
-                UUID uuid = UUID.fromString(BTCConstants.SERIAL_PORT_SERVICE_UUID);
-                try{
-                    mServerSocket = mBTAdapter.listenUsingRfcommWithServiceRecord("BLUETOOTH", uuid);
-                    mSocket = mServerSocket.accept();
-                    mBluetoothDataThread = new BluetoothDataThread(mSocket);
-                    mBluetoothDataThread.start();
-                    BluetoothDevice device = mSocket.getRemoteDevice();
-                    Intent intent = new Intent(BTCConstants.BLUETOOTH_CONNECT_BROADCAST_ACTION);
-                    Bundle bundle = new Bundle();
-                    bundle.putParcelable("device", device);
-                    intent.putExtras(bundle);
-                    mActivity.sendBroadcast(intent);
-                }catch (IOException e){
-                    if(!isClose){
-                        e.printStackTrace();
-                        connectFailed(e.getMessage());
-                    }
-                }finally {
-                    if(mServerSocket!=null){
-                        try{ mServerSocket.close(); mServerSocket = null; }catch (IOException e){}
-                    }
-                }
-            }
-        }.start();
+        mBluetoothServerThread = new BluetoothServerThread();
+        mBluetoothServerThread.run();
     }
 
     //문자보내기
@@ -371,33 +367,35 @@ public class BluetoothService {
                 mHandler.sendEmptyMessage(DISCOVERY_FINISH_HANDLER_CODE);
             }
             else if(BluetoothDevice.ACTION_FOUND.equals(action)){
-                BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
-                int rssi = (int)intent.getShortExtra(BluetoothDevice.EXTRA_RSSI, (short)-1);
-                if(device.getBondState()==BluetoothDevice.BOND_BONDED){
-                    return;
-                }
-
-                String address = device.getAddress();
-                boolean result = false;
-                for(BluetoothDevice dev : mDevices){
-                    if(address.equals(dev.getAddress())){
-                        result = true;
-                        break;
+                if( ContextCompat.checkSelfPermission(mActivity, Manifest.permission.BLUETOOTH_SCAN) == PackageManager.PERMISSION_GRANTED ) {
+                    BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
+                    int rssi = (int)intent.getShortExtra(BluetoothDevice.EXTRA_RSSI, (short)-1);
+                    if(device.getBondState()==BluetoothDevice.BOND_BONDED){
+                        return;
                     }
-                }
 
-                if(result){
-                    return;
-                }
+                    String address = device.getAddress();
+                    boolean result = false;
+                    for(BluetoothDevice dev : mDevices){
+                        if(address.equals(dev.getAddress())){
+                            result = true;
+                            break;
+                        }
+                    }
 
-                mDevices.add(device);
-                Message msg = new Message();
-                msg.what = DISCOVERY_FOUND_HANDLER_CODE;
-                Bundle bundle = new Bundle();
-                bundle.putParcelable("device", device);
-                bundle.putInt("rssi", rssi);
-                msg.setData(bundle);
-                mHandler.sendMessage(msg);
+                    if(result){
+                        return;
+                    }
+
+                    mDevices.add(device);
+                    Message msg = new Message();
+                    msg.what = DISCOVERY_FOUND_HANDLER_CODE;
+                    Bundle bundle = new Bundle();
+                    bundle.putParcelable("device", device);
+                    bundle.putInt("rssi", rssi);
+                    msg.setData(bundle);
+                    mHandler.sendMessage(msg);
+                }
             }
             else if(BluetoothDevice.ACTION_BOND_STATE_CHANGED.equals(action)){
                 isBondRequest = true;
@@ -481,6 +479,38 @@ public class BluetoothService {
         }
     };
 
+    // 서버 클래스
+    class BluetoothServerThread extends Thread {
+        @Override
+        public void run() {
+            isClose = false;
+            isFailed = false;
+            if( ContextCompat.checkSelfPermission(mActivity, Manifest.permission.BLUETOOTH_SCAN) == PackageManager.PERMISSION_GRANTED ) {
+                UUID uuid = UUID.fromString(BTCConstants.SERIAL_PORT_SERVICE_UUID);
+                try{
+                    mServerSocket = mBTAdapter.listenUsingRfcommWithServiceRecord("BLUETOOTH", uuid);
+                    mSocket = mServerSocket.accept();
+                    mBluetoothDataThread = new BluetoothDataThread(mSocket);
+                    mBluetoothDataThread.start();
+                    BluetoothDevice device = mSocket.getRemoteDevice();
+                    Intent intent = new Intent(BTCConstants.BLUETOOTH_CONNECT_BROADCAST_ACTION);
+                    Bundle bundle = new Bundle();
+                    bundle.putParcelable("device", device);
+                    intent.putExtras(bundle);
+                    mActivity.sendBroadcast(intent);
+                }catch (IOException e){
+                    if(!isClose){
+                        e.printStackTrace();
+                        connectFailed(e.getMessage());
+                    }
+                }finally {
+                    if(mServerSocket!=null){
+                        try{ mServerSocket.close(); mServerSocket = null; }catch (IOException e){}
+                    }
+                }
+            }
+        }
+    }
 
     //데이터 통신 클랙스
     class BluetoothDataThread extends Thread {

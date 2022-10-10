@@ -1,7 +1,9 @@
 package com.ghj.btcontrol;
 
+import android.Manifest;
 import android.app.ProgressDialog;
 import android.bluetooth.BluetoothDevice;
+import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.os.Build;
 import android.os.Bundle;
@@ -11,6 +13,8 @@ import androidx.appcompat.app.ActionBar;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
+import androidx.core.content.ContextCompat;
+
 import android.text.Editable;
 import android.text.Html;
 import android.text.TextWatcher;
@@ -184,6 +188,11 @@ public class ConnectActivity extends AppCompatActivity {
      * @desc 데이터 설정
      */
     public void initData(){
+        if( ContextCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_SCAN) != PackageManager.PERMISSION_GRANTED ) {
+            finish();
+            return;
+        }
+
         mRemoteName = mRemoteDevice.getName();
         String address = mRemoteDevice.getAddress();
         txtRName.setText(mRemoteName);
