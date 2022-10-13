@@ -21,6 +21,7 @@ import androidx.core.content.ContextCompat;
 import androidx.core.content.PackageManagerCompat;
 
 import com.ghj.btcontrol.data.BTCConstants;
+import com.ghj.btcontrol.util.PermissionUtil;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -147,7 +148,7 @@ public class BluetoothService {
 
     //블루투스 활성화
     public void enableBluetooth() {
-        if( ContextCompat.checkSelfPermission(mActivity, Manifest.permission.BLUETOOTH_CONNECT) == PackageManager.PERMISSION_GRANTED ) {
+        if(PermissionUtil.checkBluetoothPermission(mActivity)) {
             if (!mBTAdapter.isEnabled()) {
                 mBTAdapter.enable();
             }
@@ -156,7 +157,7 @@ public class BluetoothService {
 
     //블루투스 비활성화
     public void disableBluetooth(){
-        if( ContextCompat.checkSelfPermission(mActivity, Manifest.permission.BLUETOOTH_CONNECT) == PackageManager.PERMISSION_GRANTED ) {
+        if(PermissionUtil.checkBluetoothPermission(mActivity)) {
             if(mBTAdapter.isEnabled()){
                 cancelScanDevice();
                 closeSocket();
@@ -173,7 +174,7 @@ public class BluetoothService {
 
     //기기 검색하기
     public void startScanDevice(){
-        if( ContextCompat.checkSelfPermission(mActivity, Manifest.permission.BLUETOOTH_SCAN) == PackageManager.PERMISSION_GRANTED ) {
+        if(PermissionUtil.checkBluetoothPermission(mActivity)) {
             if(mBTAdapter.isEnabled() && !mBTAdapter.isDiscovering()){
                 mBTAdapter.startDiscovery();
             }
@@ -182,7 +183,7 @@ public class BluetoothService {
 
     //기기 검색하기 중지
     public void cancelScanDevice(){
-        if( ContextCompat.checkSelfPermission(mActivity, Manifest.permission.BLUETOOTH_SCAN) == PackageManager.PERMISSION_GRANTED ) {
+        if(PermissionUtil.checkBluetoothPermission(mActivity)) {
             if(mBTAdapter.isDiscovering()){
                 mBTAdapter.cancelDiscovery();
             }
@@ -192,7 +193,7 @@ public class BluetoothService {
     //등록된 디바이스 검색
     public List<BluetoothDevice> getBondedDevice(){
         mBonded.clear();
-        if( ContextCompat.checkSelfPermission(mActivity, Manifest.permission.BLUETOOTH_SCAN) == PackageManager.PERMISSION_GRANTED ) {
+        if(PermissionUtil.checkBluetoothPermission(mActivity)) {
             Set<BluetoothDevice> devices = mBTAdapter.getBondedDevices();
             for(BluetoothDevice device : devices){
                 mBonded.add(device);
@@ -203,7 +204,7 @@ public class BluetoothService {
 
     //페어링 요청
     public boolean requestBond(BluetoothDevice device){
-        if( ContextCompat.checkSelfPermission(mActivity, Manifest.permission.BLUETOOTH_SCAN) == PackageManager.PERMISSION_GRANTED ) {
+        if(PermissionUtil.checkBluetoothPermission(mActivity)) {
             if(device.getBondState() == BluetoothDevice.BOND_NONE){
                 //API 19이상
                 return device.createBond();
@@ -225,7 +226,7 @@ public class BluetoothService {
 
     //블루투스 연결
     public void requestConnect(BluetoothDevice device){
-        if( ContextCompat.checkSelfPermission(mActivity, Manifest.permission.BLUETOOTH_SCAN) == PackageManager.PERMISSION_GRANTED ) {
+        if(PermissionUtil.checkBluetoothPermission(mActivity)) {
             cancelScanDevice();
             closeSocket();
 
@@ -283,7 +284,7 @@ public class BluetoothService {
             public void run() {
                 try{
                     isFailed = false;
-                    if( ContextCompat.checkSelfPermission(mActivity, Manifest.permission.BLUETOOTH_SCAN) == PackageManager.PERMISSION_GRANTED ) {
+                    if(PermissionUtil.checkBluetoothPermission(mActivity)) {
                         if(!mSocket.isConnected()){
                             mSocket.connect();
                             mBluetoothDataThread = new BluetoothDataThread(mSocket);
@@ -311,7 +312,7 @@ public class BluetoothService {
         }
 
         mBluetoothServerThread = new BluetoothServerThread();
-        mBluetoothServerThread.run();
+        mBluetoothServerThread.start();
     }
 
     //문자보내기
@@ -367,7 +368,7 @@ public class BluetoothService {
                 mHandler.sendEmptyMessage(DISCOVERY_FINISH_HANDLER_CODE);
             }
             else if(BluetoothDevice.ACTION_FOUND.equals(action)){
-                if( ContextCompat.checkSelfPermission(mActivity, Manifest.permission.BLUETOOTH_SCAN) == PackageManager.PERMISSION_GRANTED ) {
+                if(PermissionUtil.checkBluetoothPermission(mActivity)) {
                     BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
                     int rssi = (int)intent.getShortExtra(BluetoothDevice.EXTRA_RSSI, (short)-1);
                     if(device.getBondState()==BluetoothDevice.BOND_BONDED){
@@ -485,7 +486,7 @@ public class BluetoothService {
         public void run() {
             isClose = false;
             isFailed = false;
-            if( ContextCompat.checkSelfPermission(mActivity, Manifest.permission.BLUETOOTH_SCAN) == PackageManager.PERMISSION_GRANTED ) {
+            if(PermissionUtil.checkBluetoothPermission(mActivity)) {
                 UUID uuid = UUID.fromString(BTCConstants.SERIAL_PORT_SERVICE_UUID);
                 try{
                     mServerSocket = mBTAdapter.listenUsingRfcommWithServiceRecord("BLUETOOTH", uuid);

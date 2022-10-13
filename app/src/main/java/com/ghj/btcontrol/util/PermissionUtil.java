@@ -73,4 +73,25 @@ public class PermissionUtil {
             ActivityCompat.requestPermissions(activity, permissions, requestCode);
         }
     }
+
+    // 블루투스 권한 체크
+    public static boolean checkBluetoothPermission(Activity activity) {
+        if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            String[] permissions = new String[]{
+                    Manifest.permission.BLUETOOTH_ADVERTISE,
+                    Manifest.permission.BLUETOOTH_CONNECT,
+                    Manifest.permission.BLUETOOTH_SCAN
+            };
+
+            boolean isPermission = true;
+            for( String perm : permissions ) {
+                if(ContextCompat.checkSelfPermission(activity, perm) != PackageManager.PERMISSION_GRANTED) {
+                    isPermission = false;
+                    break;
+                }
+            }
+            return isPermission;
+        }
+        return true;
+    }
 }

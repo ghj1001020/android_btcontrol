@@ -13,6 +13,7 @@ import android.widget.TextView;
 
 import com.ghj.btcontrol.MainActivity;
 import com.ghj.btcontrol.R;
+import com.ghj.btcontrol.util.PermissionUtil;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -24,13 +25,16 @@ import at.markushi.ui.CircleButton;
  */
 public class AdapterPaired extends BaseAdapter {
 
-    List<BluetoothDevice> data;
-    Activity mActivity;
     LayoutInflater mInflater;
 
+    List<BluetoothDevice> data;
+    Activity mActivity;
+    IPairedListener mListener;
 
-    public AdapterPaired(Activity _this){
+
+    public AdapterPaired(Activity _this, IPairedListener listener){
         this.mActivity = _this;
+        this.mListener = listener;
         data = new ArrayList<>();
         mInflater = (LayoutInflater)_this.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
     }
@@ -44,6 +48,8 @@ public class AdapterPaired extends BaseAdapter {
 
     @Override
     public View getView(int position, View convertView, ViewGroup parent) {
+        if( !PermissionUtil.checkBluetoothPermission(mActivity) ) {}
+
         if(convertView==null){
             convertView = mInflater.inflate(R.layout.adapter_paired, parent, false);
         }
@@ -76,13 +82,18 @@ public class AdapterPaired extends BaseAdapter {
 
         convertView.setTag(element);
 
-
         CircleButton delete = (CircleButton)convertView.findViewById(R.id.btnDelete);
         delete.setTag(element);
-        delete.setOnClickListener(mOnClickListener);
+        delete.setOnClickListener(v -> {
+            BluetoothDevice device = element;
+            mListener.onCancelDevice(device);
+        });
 
         Button connect = (Button)convertView.findViewById(R.id.btnConnect);
-        connect.setOnClickListener(mOnClickListener);
+        connect.setOnClickListener(v -> {
+            BluetoothDevice device = element;
+            mListener.onConnectDevice(device);
+        });
 
         return convertView;
     }
@@ -121,17 +132,6 @@ public class AdapterPaired extends BaseAdapter {
     public void removeAllItem(){
         data.clear();
     }
-
-
-    /**
-     * @desc 연결 버튼 클릭
-     */
-    View.OnClickListener mOnClickListener = new View.OnClickListener() {
-        @Override
-        public void onClick(View v) {
-            ViewParent parent = (v.getParent()).getParent();
-            BluetoothDevice device = (BluetoothDevice)((View)parent).getTag();
-            ((MainActivity)mActivity).mOnPairedClickListener(v.getId(), device);
-        }
-    };
 }
+
+

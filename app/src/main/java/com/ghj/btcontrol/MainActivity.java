@@ -17,6 +17,9 @@ import androidx.annotation.NonNull;
 import androidx.appcompat.app.ActionBar;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
+import androidx.fragment.app.FragmentManager;
+import androidx.fragment.app.FragmentTransaction;
+
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -34,29 +37,22 @@ import com.ghj.btcontrol.adapter.AdapterDevices;
 import com.ghj.btcontrol.adapter.AdapterPaired;
 import com.ghj.btcontrol.bluetooth.BluetoothService;
 import com.ghj.btcontrol.data.BluetoothData;
+import com.ghj.btcontrol.fragment.ConnectFragment;
+import com.ghj.btcontrol.fragment.ScanFragment;
 
 import java.util.List;
 
-public class MainActivity extends BaseActivity {
+public class MainActivity extends BaseFragmentActivity {
 
     final int CONNECT_ACTIVITY_REQUEST_CODE = 100;
 
-    MainActivity mActivity;
-
     Handler mBTHandler = new BTHandler();
-
-    Button btnScan, btnClose;
-    TextView txtStatus, txtNoDevice;
-    Switch swiEnable;
-    ListView listPaired, listDevices;
-    ProgressBar pbScan;
-    LinearLayout boxPaired, boxDevices;
-    ProgressDialog pdPaired, pdConnect;
-
-    AdapterPaired mAdapterPaired;
-    AdapterDevices mAdapterDevices;
-
     BluetoothService mBTService;
+
+    // 화면
+    ScanFragment mScanFragment;
+    ConnectFragment mConnectFragment;
+
 
     ActivityResultLauncher<Intent> mConnectActivityResult = registerForActivityResult(
             new ActivityResultContracts.StartActivityForResult(),
@@ -77,42 +73,10 @@ public class MainActivity extends BaseActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+    }
 
-        //액션바
-        SetCustomActionBar();
-
-        mActivity = this;
-
-        //UI
-        txtStatus = (TextView)findViewById(R.id.txtStatus);
-        swiEnable = (Switch)findViewById(R.id.swiEnable);
-        swiEnable.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
-            @Override
-            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
-                if(swiEnable.isChecked()){
-                    mBTService.enableBluetooth();
-                }else{
-                    mBTService.disableBluetooth();
-                }
-            }
-        });
-        listPaired = (ListView)findViewById(R.id.listPaired);
-        mAdapterPaired = new AdapterPaired(this);
-        listPaired.setAdapter(mAdapterPaired);
-        listDevices = (ListView)findViewById(R.id.listDevices);
-        mAdapterDevices = new AdapterDevices(this);
-        listDevices.setAdapter(mAdapterDevices);
-        txtNoDevice = (TextView)findViewById(R.id.txtNoDevice);
-        pbScan = (ProgressBar)findViewById(R.id.pbScan);
-        boxPaired = (LinearLayout)findViewById(R.id.boxPaired);
-        boxDevices = (LinearLayout)findViewById(R.id.boxDevices);
-        pdPaired = new ProgressDialog(this, ProgressDialog.STYLE_SPINNER);
-        pdPaired.setMessage("등록중 입니다...");
-        pdPaired.setCancelable(false);
-        pdConnect = new ProgressDialog(this, ProgressDialog.STYLE_SPINNER);
-        pdConnect.setMessage("연결중 입니다...");
-        pdConnect.setCancelable(false);
-
+    @Override
+    public void onCreateAfter() {
         //블루투스
         mBTService = BluetoothService.getBluetoothService(this, mBTHandler);
 
@@ -120,111 +84,41 @@ public class MainActivity extends BaseActivity {
         init();
     }
 
-    @Override
-    public void onCreateAfter() {
-
-    }
-
-
-    /**
-     * @desc 커스텀 액션바 만들기
-     */
-    public void SetCustomActionBar(){
-        ActionBar actionBar = getSupportActionBar();
-
-        actionBar.setDisplayShowCustomEnabled(true);
-        actionBar.setDisplayHomeAsUpEnabled(false);
-        actionBar.setDisplayShowHomeEnabled(false);
-        actionBar.setDisplayShowTitleEnabled(false);
-        actionBar.setDisplayUseLogoEnabled(false);
-
-        //액션바 레이아웃
-        View view = LayoutInflater.from(this).inflate(R.layout.activity_appbar, null);
-        actionBar.setCustomView(view, new ActionBar.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
-        //액션바 그림자없애기 (롤리팝부터 추가)
-        actionBar.setElevation(0);
-        //액션바 양쪽 공백 없애기
-        Toolbar toolbar = (Toolbar)view.getParent();
-        toolbar.setContentInsetsAbsolute(0,0);
-
-
-        //Bluetooth 찾기
-        btnScan = (Button)view.findViewById(R.id.btnScan);
-        btnScan.setTag(false);
-        btnScan.setOnClickListener(mOnClickListener);
-
-        //앱종료
-        btnClose = (Button)view.findViewById(R.id.btnClose);
-        btnClose.setOnClickListener(mOnClickListener);
-    }
-
     /**
      * @desc 최초 환경 세팅
      */
     public void init(){
+        changeFragment(0);
+
         if(mBTService.isEnabled()){
             mBTHandler.sendEmptyMessage(BluetoothService.STATE_ON_HANDLER_CODE);
-            if(!swiEnable.isChecked()){
-                swiEnable.setChecked(true);
-            }
         }else{
             mBTHandler.sendEmptyMessage(BluetoothService.STATE_OFF_HANDLER_CODE);
-            if(swiEnable.isChecked()){
-                swiEnable.setChecked(false);
-            }
         }
     }
 
-
     /**
-     * @desc 리스트뷰 높이 계산
+     * @desc 프래그먼트 선택
      */
-    public void CalculateListViewHeight(final ListView listView){
-        ListAdapter adapter = listView.getAdapter();
-        if(adapter==null){ return; }
+    public void changeFragment(int index) {
+        FragmentManager fm = getSupportFragmentManager();
+        FragmentTransaction fragmentTransaction = fm.beginTransaction();
 
-        int itemCount = adapter.getCount();
-        int totalHeight = 0;
-        for(int i=0; i<itemCount; i++){
-            View item = adapter.getView(i, null, listView);
-            item.measure(0, 0);
-            totalHeight += item.getMeasuredHeight();
+        switch(index) {
+            case 0:
+                if(mConnectFragment != null) {
+                    fragmentTransaction.remove(mConnectFragment);
+                }
+                mScanFragment = new ScanFragment(mBTService);
+                fragmentTransaction.add(R.id.fragment, mScanFragment);
+                break;
+            case 1:
+                mConnectFragment = new ConnectFragment();
+                fragmentTransaction.add(R.id.fragment, mConnectFragment);
+                break;
         }
-
-        int totalDividerHeight = listView.getDividerHeight() * (itemCount-1);
-
-        ViewGroup.LayoutParams params = listView.getLayoutParams();
-        params.height = totalHeight + totalDividerHeight;
-        listView.setLayoutParams(params);
-        listView.requestLayout();
+        fragmentTransaction.commit();
     }
-
-
-    /**
-     * @desc 버튼 클릭 리스너
-     */
-    View.OnClickListener mOnClickListener = new View.OnClickListener() {
-        @Override
-        public void onClick(View v) {
-            switch (v.getId()){
-                case R.id.btnScan:
-                    if(!(boolean)btnScan.getTag()){
-                        if(mBTService.isEnabled()){
-                            mBTService.startScanDevice();
-                        }else{
-                            Toast.makeText(MainActivity.this, getString(R.string.requestBTEnable), Toast.LENGTH_SHORT).show();
-                        }
-                    }else{
-                        mBTService.cancelScanDevice();
-                    }
-
-                    break;
-                case R.id.btnClose:
-                    AppFinish();
-                    break;
-            }
-        }
-    };
 
     /**
      * @desc 어답터 버튼 클릭 리스너
@@ -248,21 +142,6 @@ public class MainActivity extends BaseActivity {
         mBTService.requestBond(device);
     }
 
-    /**
-     * @desc 등록해제
-     */
-    public void removePaired(BluetoothDevice device){
-        mBTService.removeBondedDevice(device);
-    }
-
-    /**
-     * @desc 연결요청
-     */
-    public void requestConnect(BluetoothDevice device){
-        pdConnect.show();
-        mBTService.requestConnect(device);
-    }
-
 
     /**
      * @desc 앱종료
@@ -271,10 +150,7 @@ public class MainActivity extends BaseActivity {
         if(mBTService!=null){
             mBTService.onDestroyBluetooth();
         }
-
-        finish();
-        System.exit(0);
-        android.os.Process.killProcess(android.os.Process.myPid());
+        super.AppFinish();
     }
 
 
@@ -285,23 +161,10 @@ public class MainActivity extends BaseActivity {
         @Override
         public void handleMessage(@NonNull Message msg) {
             if(msg.what == BluetoothService.STATE_ON_HANDLER_CODE){
-                boxPaired.setVisibility(View.VISIBLE);
-                boxDevices.setVisibility(View.VISIBLE);
-                txtStatus.setText("사용 중");
-                swiEnable.setChecked(true);
-                mBTService.startScanDevice();
+                mScanFragment.stateOn();
             }
             else if(msg.what == BluetoothService.STATE_OFF_HANDLER_CODE){
-                boxPaired.setVisibility(View.GONE);
-                boxDevices.setVisibility(View.GONE);
-                txtStatus.setText("사용 안함");
-                swiEnable.setChecked(false);
-                mAdapterDevices.removeAllItem();
-                mAdapterDevices.notifyDataSetChanged();
-                CalculateListViewHeight(listDevices);
-                mAdapterPaired.removeAllItem();
-                mAdapterPaired.notifyDataSetChanged();
-                CalculateListViewHeight(listPaired);
+                mScanFragment.stateOff();
             }
             else if(msg.what == BluetoothService.DISCOVERY_START_HANDLER_CODE){
                 btnScan.setTag(true);
@@ -418,17 +281,6 @@ public class MainActivity extends BaseActivity {
             else if(msg.what == BluetoothService.DISCONNECTED_ACL_HANDLER_CODE){
                 pdConnect.dismiss();
             }
-        }
-    }
-
-
-    @Override
-    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        super.onActivityResult(requestCode, resultCode, data);
-        if(requestCode == CONNECT_ACTIVITY_REQUEST_CODE){
-            mBTService = BluetoothService.getBluetoothService(this, mBTHandler);
-            mBTService.runListening();
-            init();
         }
     }
 

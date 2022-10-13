@@ -87,8 +87,8 @@
             android:layout_height="40dp"
             android:layout_alignParentRight="true"
             android:layout_centerVertical="true"
-            android:src="@drawable/ic_launcher"
-            app:cb_color="#6799FF"
+            android:src="@drawable/ic_delete"
+            app:cb_color="#FFFFFF"
             app:cb_pressedRingWidth="10dp"/>
     </RelativeLayout>
 
