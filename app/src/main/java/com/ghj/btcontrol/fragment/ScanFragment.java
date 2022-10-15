@@ -2,6 +2,7 @@ package com.ghj.btcontrol.fragment;
 
 import android.app.ProgressDialog;
 import android.bluetooth.BluetoothDevice;
+import android.content.Intent;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -21,16 +22,20 @@ import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 
 import com.ghj.btcontrol.BaseActivity;
+import com.ghj.btcontrol.BaseFragmentActivity;
+import com.ghj.btcontrol.ConnectActivity;
 import com.ghj.btcontrol.MainActivity;
 import com.ghj.btcontrol.R;
 import com.ghj.btcontrol.adapter.AdapterDevices;
 import com.ghj.btcontrol.adapter.AdapterPaired;
+import com.ghj.btcontrol.adapter.IDevicesListener;
 import com.ghj.btcontrol.adapter.IPairedListener;
 import com.ghj.btcontrol.bluetooth.BluetoothService;
+import com.ghj.btcontrol.data.BluetoothData;
+
+import java.util.List;
 
 public class ScanFragment extends Fragment implements View.OnClickListener {
-
-    BluetoothService mBTService;
 
     Button btnScan, btnClose;
     TextView txtStatus, txtNoDevice;
@@ -44,8 +49,15 @@ public class ScanFragment extends Fragment implements View.OnClickListener {
     AdapterDevices mAdapterDevices;
 
 
-    public ScanFragment(BluetoothService service) {
-        this.mBTService = service;
+    public ScanFragment() {}
+
+    @Override
+    public void onCreate(@Nullable Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+
+        if( getActivity() instanceof BaseFragmentActivity ) {
+            ((BaseFragmentActivity) getActivity()).addToFragmentStack(this);
+        }
     }
 
     @Nullable
@@ -73,9 +85,9 @@ public class ScanFragment extends Fragment implements View.OnClickListener {
             @Override
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
                 if(swiEnable.isChecked()){
-                    mBTService.enableBluetooth();
+                    ((MainActivity) getActivity()).getBTService().enableBluetooth();
                 }else{
-                    mBTService.disableBluetooth();
+                    ((MainActivity) getActivity()).getBTService().disableBluetooth();
                 }
             }
         });
@@ -83,6 +95,7 @@ public class ScanFragment extends Fragment implements View.OnClickListener {
         mAdapterPaired = new AdapterPaired(getActivity(), new IPairedListener() {
             @Override
             public void onCancelDevice(BluetoothDevice device) {
+
                 mBTService.removeBondedDevice(device);
             }
             @Override
@@ -93,7 +106,13 @@ public class ScanFragment extends Fragment implements View.OnClickListener {
         });
         listPaired.setAdapter(mAdapterPaired);
         listDevices = (ListView)view.findViewById(R.id.listDevices);
-        mAdapterDevices = new AdapterDevices(getActivity());
+        mAdapterDevices = new AdapterDevices(getActivity(), new IDevicesListener() {
+            @Override
+            public void onPairingDevice(BluetoothDevice device) {
+                pdPaired.show();
+                mBTService.requestBond(device);
+            }
+        });
         listDevices.setAdapter(mAdapterDevices);
         txtNoDevice = (TextView)view.findViewById(R.id.txtNoDevice);
         pbScan = (ProgressBar)view.findViewById(R.id.pbScan);
@@ -178,5 +197,155 @@ public class ScanFragment extends Fragment implements View.OnClickListener {
         mAdapterPaired.removeAllItem();
         mAdapterPaired.notifyDataSetChanged();
         CalculateListViewHeight(listPaired);
+    }
+
+    /**
+     * @desc scan start
+     */
+    public void discoveryStart() {
+        btnScan.setTag(true);
+        btnScan.setText("STOP");
+        pbScan.setVisibility(View.VISIBLE);
+        txtNoDevice.setVisibility(View.GONE);
+        listDevices.setVisibility(View.VISIBLE);
+        mAdapterDevices.removeAllItem();
+        mAdapterDevices.notifyDataSetChanged();
+        CalculateListViewHeight(listDevices);
+        List<BluetoothDevice> paired = mBTService.getBondedDevice();
+        mAdapterPaired.removeAllItem();
+        if(paired.size()>0){
+            boxPaired.setVisibility(View.VISIBLE);
+            mAdapterPaired.addItems(paired);
+        }else{
+            boxPaired.setVisibility(View.GONE);
+        }
+        mAdapterPaired.notifyDataSetChanged();
+        CalculateListViewHeight(listPaired);
+    }
+
+    /**
+     * @desc scan finish
+     */
+    public void discoveryFinish() {
+        btnScan.setTag(false);
+        btnScan.setText("SCAN");
+        pbScan.setVisibility(View.GONE);
+        if(mAdapterDevices.getCount()>0){
+            txtNoDevice.setVisibility(View.GONE);
+            listDevices.setVisibility(View.VISIBLE);
+        }else{
+            listDevices.setVisibility(View.GONE);
+            txtNoDevice.setVisibility(View.VISIBLE);
+        }
+    }
+
+    /**
+     * @desc scan device found
+     */
+    public void discoveryFound(BluetoothDevice device, int rssi) {
+        BluetoothData btData = new BluetoothData(device, rssi);
+        mAdapterDevices.addItem(btData);
+        mAdapterDevices.notifyDataSetChanged();
+        CalculateListViewHeight(listDevices);
+    }
+
+    /**
+     * @desc bonded device
+     */
+    public void bonded(BluetoothDevice device) {
+        pdPaired.dismiss();
+        pdConnect.dismiss();
+        mAdapterPaired.addItem(device);
+        mAdapterPaired.notifyDataSetChanged();
+        CalculateListViewHeight(listPaired);
+        mAdapterDevices.removeItem(device);
+        mAdapterDevices.notifyDataSetChanged();
+        CalculateListViewHeight(listDevices);
+        if(boxPaired.getVisibility()==View.GONE){
+            boxPaired.setVisibility(View.VISIBLE);
+        }
+        if(mAdapterDevices.getCount()==0){
+            listDevices.setVisibility(View.GONE);
+            txtNoDevice.setVisibility(View.VISIBLE);
+        }
+    }
+
+    /**
+     * @desc bonded cancel
+     */
+    public void bondedCancel(BluetoothDevice device) {
+        pdPaired.dismiss();
+        pdConnect.dismiss();
+
+        BluetoothData data = new BluetoothData(device, Integer.MIN_VALUE);
+        mAdapterDevices.addItem(data);
+        mAdapterDevices.notifyDataSetChanged();
+        CalculateListViewHeight(listDevices);
+        mAdapterPaired.removeItem(device);
+        mAdapterPaired.notifyDataSetChanged();
+        CalculateListViewHeight(listPaired);
+        if(listDevices.getVisibility()==View.GONE){
+            txtNoDevice.setVisibility(View.GONE);
+            listDevices.setVisibility(View.VISIBLE);
+        }
+        if(mAdapterPaired.getCount()==0){
+            boxPaired.setVisibility(View.GONE);
+        }
+    }
+
+    /**
+     * @desc bonded fail
+     */
+    public void bondedFail(String name) {
+        pdPaired.dismiss();
+        pdConnect.dismiss();
+        Toast.makeText(getContext(), name+"에 연결할 수 없습니다.", Toast.LENGTH_SHORT).show();
+    }
+
+    /**
+     * @desc connect success by client
+     */
+    public void connectSuccessAsClient() {
+        pdConnect.dismiss();
+//        Intent intent = new Intent(mActivity, ConnectActivity.class);
+//        mConnectActivityResult.launch(intent);
+    }
+
+    /**
+     * @desc connect success by master
+     */
+    public void connectSuccessAsMaster() {
+        pdConnect.dismiss();
+    }
+
+    /**
+     * @desc connect success ACL
+     */
+    public void connectSuccessACL() {
+        pdConnect.dismiss();
+//        Intent intent = new Intent(mActivity, ConnectActivity.class);
+//        mConnectActivityResult.launch(intent);
+    }
+
+    /**
+     * @desc connect fail
+     */
+    public void connectFail(String message) {
+        pdConnect.dismiss();
+        Toast.makeText(getContext(), "블루투스 연결에 실패하였습니다.\n["+message+"]", Toast.LENGTH_SHORT).show();
+    }
+
+    /**
+     * @desc disconnected
+     */
+    public void disconnected() {
+        pdConnect.dismiss();
+    }
+
+    /**
+     * @desc disconnected ACL
+     */
+    public void disconnectedACL() {
+        pdConnect.dismiss();
     }
 }

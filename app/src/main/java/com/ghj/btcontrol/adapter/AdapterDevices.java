@@ -13,6 +13,7 @@ import android.widget.TextView;
 import com.ghj.btcontrol.MainActivity;
 import com.ghj.btcontrol.R;
 import com.ghj.btcontrol.data.BluetoothData;
+import com.ghj.btcontrol.util.PermissionUtil;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -22,13 +23,16 @@ import java.util.List;
  */
 public class AdapterDevices extends BaseAdapter {
 
-    List<BluetoothData> data;
-    Activity mActivity;
     LayoutInflater mInflater;
 
+    List<BluetoothData> data;
+    Activity mActivity;
+    IDevicesListener mListener;
 
-    public AdapterDevices(Activity _this){
+
+    public AdapterDevices(Activity _this, IDevicesListener listener){
         this.mActivity = _this;
+        this.mListener = listener;
         data = new ArrayList<>();
         mInflater = (LayoutInflater)_this.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
     }
@@ -42,6 +46,8 @@ public class AdapterDevices extends BaseAdapter {
 
     @Override
     public View getView(int position, View convertView, ViewGroup parent) {
+        if(!PermissionUtil.checkBluetoothPermission(mActivity)) {}
+
         if(convertView==null){
             convertView = mInflater.inflate(R.layout.adapter_devices, parent, false);
         }
@@ -78,7 +84,9 @@ public class AdapterDevices extends BaseAdapter {
 
         Button paired = (Button)convertView.findViewById(R.id.btnPaired);
         paired.setTag(device);
-        paired.setOnClickListener(mOnClickListener);
+        paired.setOnClickListener(v -> {
+            mListener.onPairingDevice(device);
+        });
 
         return convertView;
     }
@@ -118,16 +126,4 @@ public class AdapterDevices extends BaseAdapter {
     public void removeAllItem(){
         data.clear();
     }
-
-
-    /**
-     * @desc 페어링 버튼 클릭
-     */
-    View.OnClickListener mOnClickListener = new View.OnClickListener() {
-        @Override
-        public void onClick(View v) {
-            BluetoothDevice device = (BluetoothDevice)v.getTag();
-            ((MainActivity)mActivity).requestPairing(device);
-        }
-    };
 }

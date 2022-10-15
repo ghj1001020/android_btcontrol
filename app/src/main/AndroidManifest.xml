@@ -25,7 +25,6 @@
         tools:replace="android:icon">
 
         <activity android:name=".LoadingActivity"
-            android:theme="@style/Theme.AppCompat.NoActionBar"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>

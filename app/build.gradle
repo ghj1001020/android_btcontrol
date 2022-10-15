@@ -1,4 +1,5 @@
 apply plugin: 'com.android.application'
+apply plugin: "androidx.navigation.safeargs"
 
 android {
     compileSdkVersion 32
@@ -35,4 +36,9 @@ dependencies {
     implementation 'com.balysv:material-ripple:1.0.2'// material design
 
     implementation('androidx.constraintlayout:constraintlayout:2.2.0-alpha04')
+
+    // navigation
+    implementation('androidx.navigation:navigation-fragment:2.5.2')
+    implementation('androidx.navigation:navigation-ui:2.5.2')
+    implementation("androidx.navigation:navigation-dynamic-features-fragment:2.5.2")
 }
