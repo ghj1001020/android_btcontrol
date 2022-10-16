@@ -16,6 +16,8 @@ import android.os.Handler;
 import android.os.Message;
 import android.util.Log;
 
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
@@ -175,9 +177,10 @@ public class BluetoothService {
     //기기 검색하기
     public void startScanDevice(){
         if(PermissionUtil.checkBluetoothPermission(mActivity)) {
+            // scan device
             if(mBTAdapter.isEnabled() && !mBTAdapter.isDiscovering()){
                 boolean scan = mBTAdapter.startDiscovery();
-                Log.d("aaaa", scan + "");
+                Log.d(TAG, scan + "scan = " + scan);
             }
         }
     }

@@ -1,8 +1,11 @@
 package com.ghj.btcontrol;
 
+import android.Manifest;
 import android.app.Activity;
+import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
@@ -12,6 +15,7 @@ import androidx.activity.result.ActivityResultCallback;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
+import androidx.core.app.ActivityCompat;
 import androidx.fragment.app.FragmentManager;
 import androidx.fragment.app.FragmentTransaction;
 import androidx.navigation.NavController;
@@ -21,11 +25,18 @@ import androidx.navigation.fragment.NavHostFragment;
 import com.ghj.btcontrol.bluetooth.BluetoothService;
 import com.ghj.btcontrol.fragment.ConnectFragment;
 import com.ghj.btcontrol.fragment.ScanFragment;
+import com.ghj.btcontrol.util.PermissionUtil;
 
 public class MainActivity extends BaseFragmentActivity {
 
     Handler mBTHandler = new BTHandler();
     private BluetoothService mBTService;
+
+    // 다른기기에서 내기기 찾기 콜백
+    ActivityResultLauncher<Intent> mDiscovery = registerForActivityResult(
+            new ActivityResultContracts.StartActivityForResult(),
+            result -> {}
+    );
 
 
     @Override
@@ -62,6 +73,17 @@ public class MainActivity extends BaseFragmentActivity {
             mBTService.onDestroyBluetooth();
         }
         super.AppFinish();
+    }
+
+    /**
+     * @desc 다른기기에서 내기기 찾기
+     */
+    public void discoverableDevice() {
+        if (PermissionUtil.checkBluetoothPermission(mActivity)) {
+            Intent intent = new Intent(BluetoothAdapter.ACTION_REQUEST_DISCOVERABLE);
+            intent.putExtra(BluetoothAdapter.EXTRA_DISCOVERABLE_DURATION, 0);
+            mDiscovery.launch(intent);
+        }
     }
 
     /**

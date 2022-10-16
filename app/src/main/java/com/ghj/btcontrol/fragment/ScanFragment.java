@@ -2,7 +2,6 @@ package com.ghj.btcontrol.fragment;
 
 import android.app.ProgressDialog;
 import android.bluetooth.BluetoothDevice;
-import android.content.Intent;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -20,20 +19,14 @@ import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
-import androidx.fragment.app.FragmentResultListener;
-import androidx.navigation.Navigation;
 import androidx.navigation.fragment.NavHostFragment;
 
-import com.ghj.btcontrol.BaseActivity;
 import com.ghj.btcontrol.BaseFragmentActivity;
-import com.ghj.btcontrol.ConnectActivity;
 import com.ghj.btcontrol.MainActivity;
 import com.ghj.btcontrol.R;
 import com.ghj.btcontrol.adapter.AdapterDevices;
 import com.ghj.btcontrol.adapter.AdapterPaired;
-import com.ghj.btcontrol.adapter.IDevicesListener;
 import com.ghj.btcontrol.adapter.IPairedListener;
-import com.ghj.btcontrol.bluetooth.BluetoothService;
 import com.ghj.btcontrol.data.BluetoothData;
 
 import java.util.List;
@@ -143,6 +136,7 @@ public class ScanFragment extends Fragment implements View.OnClickListener {
             case R.id.btnScan:
                 if(!(boolean)btnScan.getTag()){
                     if(((MainActivity) getActivity()).getBTService().isEnabled()){
+                        ((MainActivity) getActivity()).discoverableDevice();
                         ((MainActivity) getActivity()).getBTService().startScanDevice();
                     }else{
                         Toast.makeText(getContext(), getString(R.string.requestBTEnable), Toast.LENGTH_SHORT).show();
@@ -198,6 +192,7 @@ public class ScanFragment extends Fragment implements View.OnClickListener {
         boxDevices.setVisibility(View.VISIBLE);
         txtStatus.setText("사용 중");
         swiEnable.setChecked(true);
+        ((MainActivity) getActivity()).discoverableDevice();
         ((MainActivity) getActivity()).getBTService().startScanDevice();
     }
 
