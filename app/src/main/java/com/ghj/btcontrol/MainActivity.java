@@ -14,7 +14,9 @@ import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.fragment.app.FragmentManager;
 import androidx.fragment.app.FragmentTransaction;
+import androidx.navigation.NavController;
 import androidx.navigation.Navigation;
+import androidx.navigation.fragment.NavHostFragment;
 
 import com.ghj.btcontrol.bluetooth.BluetoothService;
 import com.ghj.btcontrol.fragment.ConnectFragment;
@@ -22,20 +24,8 @@ import com.ghj.btcontrol.fragment.ScanFragment;
 
 public class MainActivity extends BaseFragmentActivity {
 
-    enum MODE {
-        SCAN,
-        CONNECT
-    }
-
     Handler mBTHandler = new BTHandler();
     private BluetoothService mBTService;
-
-    // 화면
-    ScanFragment mScanFragment;
-
-    // 프래그먼트 인덱스
-    MODE currentIndex = MODE.SCAN;
-
 
     ActivityResultLauncher<Intent> mConnectActivityResult = registerForActivityResult(
             new ActivityResultContracts.StartActivityForResult(),
@@ -45,7 +35,7 @@ public class MainActivity extends BaseFragmentActivity {
                     if(result.getResultCode() == Activity.RESULT_OK) {
                         mBTService = BluetoothService.getBluetoothService(mActivity, mBTHandler);
                         mBTService.runListening();
-                        init();
+//                        init();
                     }
                 }
             }
@@ -60,26 +50,14 @@ public class MainActivity extends BaseFragmentActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        //블루투스
+        mBTService = BluetoothService.getBluetoothService(this, mBTHandler);
     }
 
     @Override
     public void onCreateAfter() {
-        //블루투스
-        mBTService = BluetoothService.getBluetoothService(this, mBTHandler);
 
-        //초기화
-        init();
-    }
-
-    /**
-     * @desc 최초 환경 세팅
-     */
-    public void init(){
-        if(mBTService.isEnabled()){
-            mBTHandler.sendEmptyMessage(BluetoothService.STATE_ON_HANDLER_CODE);
-        }else{
-            mBTHandler.sendEmptyMessage(BluetoothService.STATE_OFF_HANDLER_CODE);
-        }
     }
 
     /**
@@ -111,64 +89,81 @@ public class MainActivity extends BaseFragmentActivity {
                 }
             }
             else if(msg.what == BluetoothService.STATE_OFF_HANDLER_CODE){
-                mScanFragment.stateOff();
+                if( getCurrentFragment() instanceof ScanFragment ) {
+                    ((ScanFragment) getCurrentFragment()).stateOff();
+                }
             }
             else if(msg.what == BluetoothService.DISCOVERY_START_HANDLER_CODE){
-                mScanFragment.discoveryStart();
+                if( getCurrentFragment() instanceof ScanFragment ) {
+                    ((ScanFragment) getCurrentFragment()).discoveryStart();
+                }
             }
             else if(msg.what == BluetoothService.DISCOVERY_FINISH_HANDLER_CODE){
-                mScanFragment.discoveryFinish();
+                if( getCurrentFragment() instanceof ScanFragment ) {
+                    ((ScanFragment) getCurrentFragment()).discoveryFinish();
+                }
             }
             else if(msg.what == BluetoothService.DISCOVERY_FOUND_HANDLER_CODE){
                 Bundle bundle = msg.getData();
                 BluetoothDevice device = bundle.getParcelable("device");
                 int rssi = bundle.getInt("rssi");
-                mScanFragment.discoveryFound(device, rssi);
+                if( getCurrentFragment() instanceof ScanFragment ) {
+                    ((ScanFragment) getCurrentFragment()).discoveryFound(device, rssi);
+                }
             }
             else if(msg.what == BluetoothService.BONDED_HANDLER_CODE){
                 Bundle bundle = msg.getData();
                 BluetoothDevice device = bundle.getParcelable("device");
-                mScanFragment.bonded(device);
+                if( getCurrentFragment() instanceof ScanFragment ) {
+                    ((ScanFragment) getCurrentFragment()).bonded(device);
+                }
             }
             else if(msg.what == BluetoothService.BONDED_CANCEL_HANDLER_CODE){
                 Bundle bundle = msg.getData();
                 BluetoothDevice device = bundle.getParcelable("device");
-                mScanFragment.bondedCancel(device);
+                if( getCurrentFragment() instanceof ScanFragment ) {
+                    ((ScanFragment) getCurrentFragment()).bondedCancel(device);
+                }
             }
             else if(msg.what == BluetoothService.BONDED_FAIL_HANDLER_CODE){
                 String name = (String)msg.obj;
-                mScanFragment.bondedFail(name);
+                if( getCurrentFragment() instanceof ScanFragment ) {
+                    ((ScanFragment) getCurrentFragment()).bondedFail(name);
+                }
             }
             else if(msg.what == BluetoothService.CONNECT_SUCCESS_CLIENT_HANDLER_CODE){
-                mScanFragment.connectSuccessAsClient();
+                if( getCurrentFragment() instanceof ScanFragment ) {
+                    ((ScanFragment) getCurrentFragment()).connectSuccessAsClient();
+                }
             }
             else if(msg.what == BluetoothService.CONNECT_SUCCESS_MASTER_HANDLER_CODE){
-                mScanFragment.connectSuccessAsMaster();
+                if( getCurrentFragment() instanceof ScanFragment ) {
+                    ((ScanFragment) getCurrentFragment()).connectSuccessAsMaster();
+                }
             }
             else if(msg.what == BluetoothService.CONNECT_SUCCESS_ACL_HANDLER_CODE){
-                mScanFragment.connectSuccessACL();
+                if( getCurrentFragment() instanceof ScanFragment ) {
+                    ((ScanFragment) getCurrentFragment()).connectSuccessACL();
+                }
             }
             else if(msg.what == BluetoothService.CONNECT_FAIL_HANDLER_CODE){
                 Bundle bundle = msg.getData();
                 String message = bundle.getString("message");
-                mScanFragment.connectFail(message);
+                if( getCurrentFragment() instanceof ScanFragment ) {
+                    ((ScanFragment) getCurrentFragment()).connectFail(message);
+                }
             }
             else if(msg.what == BluetoothService.DISCONNECTED_HANDLER_CODE){
-                mScanFragment.disconnected();
+                if( getCurrentFragment() instanceof ScanFragment ) {
+                    ((ScanFragment) getCurrentFragment()).disconnected();
+                }
             }
             else if(msg.what == BluetoothService.DISCONNECTED_ACL_HANDLER_CODE){
-                mScanFragment.disconnectedACL();
+                if( getCurrentFragment() instanceof ScanFragment ) {
+                    ((ScanFragment) getCurrentFragment()).disconnectedACL();
+                }
             }
         }
-    }
-
-    @Override
-    public void onBackPressed() {
-        if(currentIndex == MODE.CONNECT) {
-
-            return;
-        }
-        AppFinish();
     }
 }
 

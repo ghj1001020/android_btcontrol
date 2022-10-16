@@ -1,6 +1,10 @@
 package com.ghj.btcontrol;
 
 import androidx.fragment.app.Fragment;
+import androidx.fragment.app.FragmentManager;
+import androidx.navigation.NavController;
+import androidx.navigation.Navigation;
+import androidx.navigation.fragment.NavHostFragment;
 
 import java.util.ArrayList;
 
@@ -34,9 +38,28 @@ public abstract class BaseFragmentActivity extends BaseActivity {
 
     // 현재 프래그먼트
     public Fragment getCurrentFragment() {
-        if(fragmentStack.size() == 0) {
-            return null;
+//        if(fragmentStack.size() == 0) {
+//            return null;
+//        }
+//        return fragmentStack.get(fragmentStack.size()-1);
+        return getChildFragmentManager().getFragments().get(0);
+    }
+
+    private NavController getNavController() {
+        return Navigation.findNavController(this, getFragmentID());
+    }
+
+    private FragmentManager getChildFragmentManager() {
+        return getSupportFragmentManager().findFragmentById(getFragmentID()).getChildFragmentManager();
+    }
+
+    @Override
+    public void onBackPressed() {
+        int cnt = getChildFragmentManager().getBackStackEntryCount();
+        if(cnt > 0) {
+            getNavController().popBackStack();
+            return;
         }
-        return fragmentStack.get(fragmentStack.size()-1);
+        AppFinish();
     }
 }

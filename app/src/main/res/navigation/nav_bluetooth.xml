@@ -10,7 +10,9 @@
         android:label="ScanFragment" >
         <action
             android:id="@+id/action_scanFragment_to_connectFragment"
-            app:destination="@id/connectFragment" />
+            app:destination="@id/connectFragment"
+            app:popUpTo="@id/scanFragment"
+            app:popUpToInclusive="false"/>
     </fragment>
 
     <fragment

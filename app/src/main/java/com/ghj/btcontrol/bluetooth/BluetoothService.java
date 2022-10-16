@@ -176,6 +176,7 @@ public class BluetoothService {
     public void startScanDevice(){
         if(PermissionUtil.checkBluetoothPermission(mActivity)) {
             if(mBTAdapter.isEnabled() && !mBTAdapter.isDiscovering()){
+
                 mBTAdapter.startDiscovery();
             }
         }

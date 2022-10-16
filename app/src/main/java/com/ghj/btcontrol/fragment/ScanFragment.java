@@ -20,6 +20,9 @@ import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
+import androidx.fragment.app.FragmentResultListener;
+import androidx.navigation.Navigation;
+import androidx.navigation.fragment.NavHostFragment;
 
 import com.ghj.btcontrol.BaseActivity;
 import com.ghj.btcontrol.BaseFragmentActivity;
@@ -47,7 +50,6 @@ public class ScanFragment extends Fragment implements View.OnClickListener {
 
     AdapterPaired mAdapterPaired;
     AdapterDevices mAdapterDevices;
-
 
     public ScanFragment() {}
 
@@ -95,13 +97,12 @@ public class ScanFragment extends Fragment implements View.OnClickListener {
         mAdapterPaired = new AdapterPaired(getActivity(), new IPairedListener() {
             @Override
             public void onCancelDevice(BluetoothDevice device) {
-
-                mBTService.removeBondedDevice(device);
+                ((MainActivity) getActivity()).getBTService().removeBondedDevice(device);
             }
             @Override
             public void onConnectDevice(BluetoothDevice device) {
                 pdConnect.show();
-                mBTService.requestConnect(device);
+                ((MainActivity) getActivity()).getBTService().requestConnect(device);
             }
         });
         listPaired.setAdapter(mAdapterPaired);
@@ -110,7 +111,7 @@ public class ScanFragment extends Fragment implements View.OnClickListener {
             @Override
             public void onPairingDevice(BluetoothDevice device) {
                 pdPaired.show();
-                mBTService.requestBond(device);
+                ((MainActivity) getActivity()).getBTService().requestBond(device);
             }
         });
         listDevices.setAdapter(mAdapterDevices);
@@ -124,6 +125,18 @@ public class ScanFragment extends Fragment implements View.OnClickListener {
         pdConnect = new ProgressDialog(getContext(), ProgressDialog.STYLE_SPINNER);
         pdConnect.setMessage("연결중 입니다...");
         pdConnect.setCancelable(false);
+        init();
+    }
+
+    /**
+     * @desc 최초 환경 세팅
+     */
+    public void init(){
+        if(((MainActivity) getActivity()).getBTService().isEnabled()){
+            stateOn();
+        }else{
+            stateOff();
+        }
     }
 
     @Override
@@ -132,13 +145,13 @@ public class ScanFragment extends Fragment implements View.OnClickListener {
             // 스캔
             case R.id.btnScan:
                 if(!(boolean)btnScan.getTag()){
-                    if(mBTService.isEnabled()){
-                        mBTService.startScanDevice();
+                    if(((MainActivity) getActivity()).getBTService().isEnabled()){
+                        ((MainActivity) getActivity()).getBTService().startScanDevice();
                     }else{
                         Toast.makeText(getContext(), getString(R.string.requestBTEnable), Toast.LENGTH_SHORT).show();
                     }
                 }else{
-                    mBTService.cancelScanDevice();
+                    ((MainActivity) getActivity()).getBTService().cancelScanDevice();
                 }
                 break;
 
@@ -173,6 +186,14 @@ public class ScanFragment extends Fragment implements View.OnClickListener {
     }
 
     /**
+     * @desc 연결화면으로 이동
+     */
+    private void moveToConnect() {
+        ((MainActivity) getActivity()).getBTService().cancelScanDevice();
+        NavHostFragment.findNavController(this).navigate(R.id.action_scanFragment_to_connectFragment);
+    }
+
+    /**
      * @desc enable on
      */
     public void stateOn() {
@@ -180,7 +201,7 @@ public class ScanFragment extends Fragment implements View.OnClickListener {
         boxDevices.setVisibility(View.VISIBLE);
         txtStatus.setText("사용 중");
         swiEnable.setChecked(true);
-        mBTService.startScanDevice();
+        ((MainActivity) getActivity()).getBTService().startScanDevice();
     }
 
     /**
@@ -211,7 +232,7 @@ public class ScanFragment extends Fragment implements View.OnClickListener {
         mAdapterDevices.removeAllItem();
         mAdapterDevices.notifyDataSetChanged();
         CalculateListViewHeight(listDevices);
-        List<BluetoothDevice> paired = mBTService.getBondedDevice();
+        List<BluetoothDevice> paired = ((MainActivity) getActivity()).getBTService().getBondedDevice();
         mAdapterPaired.removeAllItem();
         if(paired.size()>0){
             boxPaired.setVisibility(View.VISIBLE);
