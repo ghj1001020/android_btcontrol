@@ -18,7 +18,6 @@ import android.util.Log;
 
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
-import androidx.core.content.PackageManagerCompat;
 
 import com.ghj.btcontrol.data.BTCConstants;
 import com.ghj.btcontrol.util.PermissionUtil;
@@ -27,6 +26,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.lang.reflect.Method;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
@@ -176,8 +176,8 @@ public class BluetoothService {
     public void startScanDevice(){
         if(PermissionUtil.checkBluetoothPermission(mActivity)) {
             if(mBTAdapter.isEnabled() && !mBTAdapter.isDiscovering()){
-
-                mBTAdapter.startDiscovery();
+                boolean scan = mBTAdapter.startDiscovery();
+                Log.d("aaaa", scan + "");
             }
         }
     }

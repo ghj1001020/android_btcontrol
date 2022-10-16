@@ -27,19 +27,6 @@ public class MainActivity extends BaseFragmentActivity {
     Handler mBTHandler = new BTHandler();
     private BluetoothService mBTService;
 
-    ActivityResultLauncher<Intent> mConnectActivityResult = registerForActivityResult(
-            new ActivityResultContracts.StartActivityForResult(),
-            new ActivityResultCallback<ActivityResult>() {
-                @Override
-                public void onActivityResult(ActivityResult result) {
-                    if(result.getResultCode() == Activity.RESULT_OK) {
-                        mBTService = BluetoothService.getBluetoothService(mActivity, mBTHandler);
-                        mBTService.runListening();
-//                        init();
-                    }
-                }
-            }
-    );
 
     @Override
     public int getFragmentID() {

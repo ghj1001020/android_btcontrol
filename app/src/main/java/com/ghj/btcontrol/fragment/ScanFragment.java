@@ -107,12 +107,9 @@ public class ScanFragment extends Fragment implements View.OnClickListener {
         });
         listPaired.setAdapter(mAdapterPaired);
         listDevices = (ListView)view.findViewById(R.id.listDevices);
-        mAdapterDevices = new AdapterDevices(getActivity(), new IDevicesListener() {
-            @Override
-            public void onPairingDevice(BluetoothDevice device) {
-                pdPaired.show();
-                ((MainActivity) getActivity()).getBTService().requestBond(device);
-            }
+        mAdapterDevices = new AdapterDevices(getActivity(), device -> {
+            pdPaired.show();
+            ((MainActivity) getActivity()).getBTService().requestBond(device);
         });
         listDevices.setAdapter(mAdapterDevices);
         txtNoDevice = (TextView)view.findViewById(R.id.txtNoDevice);

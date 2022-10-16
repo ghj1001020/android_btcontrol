@@ -2,11 +2,17 @@ package com.ghj.btcontrol;
 
 import android.app.Activity;
 import android.content.Context;
+import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.location.LocationManager;
 import android.os.Build;
 import android.os.Bundle;
-import android.util.Log;
+import android.provider.Settings;
 
+import androidx.activity.result.ActivityResult;
+import androidx.activity.result.ActivityResultCallback;
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
@@ -17,7 +23,6 @@ import cn.pedant.SweetAlert.SweetAlertDialog;
 
 public abstract class BaseActivity extends AppCompatActivity
 {
-
     private final int PERMISSION_REQUEST_CODE = 1;
 
     public Activity mActivity;
@@ -27,12 +32,22 @@ public abstract class BaseActivity extends AppCompatActivity
     boolean isPostCreate = false;
     String[] permissions = (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) ? PermissionUtil.PERMISSIONS31 : PermissionUtil.PERMISSIONS;
 
+    // GPS On 설정결과
+    ActivityResultLauncher<Intent> mGPSOnResult = registerForActivityResult(
+            new ActivityResultContracts.StartActivityForResult(),
+            new ActivityResultCallback<ActivityResult>() {
+                @Override
+                public void onActivityResult(ActivityResult result) {
+                    checkActivity();
+                }
+            }
+    );
+
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        Log.d("aaaaa", "1111!");
         mActivity = this;
         mContext = this;
         checkActivity();
@@ -50,11 +65,15 @@ public abstract class BaseActivity extends AppCompatActivity
      * @desc 액티비트 실행 체크
      */
     private void checkActivity() {
-        Log.d("aaaaa", "22222!");
-        boolean isPermission = CheckPermission();
+        boolean checked = CheckPermission();
+        if(!checked)
+            return;
 
-        if(isPermission) {
+        checked = CheckGPSOn();
+
+        if(checked) {
             isAppReady = true;
+            runActivity();
         }
     }
 
@@ -82,8 +101,28 @@ public abstract class BaseActivity extends AppCompatActivity
                 PermissionUtil.requestPermissions(this, permissions, PERMISSION_REQUEST_CODE);
             }
             else {
-                alert("권한이 필요합니다.", sweetAlertDialog -> AppFinish());
+                alert("권한이 필요합니다.", sweetAlertDialog -> {
+                    sweetAlertDialog.dismiss();
+                    AppFinish();
+                });
             }
+            return false;
+        }
+    }
+
+    /**
+     * @desc GPS On 체크
+     */
+    private boolean CheckGPSOn() {
+        LocationManager lm = (LocationManager) getSystemService(LOCATION_SERVICE);
+        if(lm.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
+            return true;
+        }
+        else {
+            alert("GPS를 켜주세요.", sweetAlertDialog -> {
+                sweetAlertDialog.dismiss();
+                moveToGPSOn();
+            });
             return false;
         }
     }
@@ -106,14 +145,23 @@ public abstract class BaseActivity extends AppCompatActivity
                 }
 
                 if (result) {
-                    Log.d("aaaaa", "33333!");
                     checkActivity();
-                    runActivity();
                 } else {
-                    alert("권한이 필요합니다.", sweetAlertDialog -> AppFinish());
+                    alert("권한이 필요합니다.", sweetAlertDialog -> {
+                        sweetAlertDialog.dismiss();
+                        AppFinish();
+                    });
                 }
                 break;
         }
+    }
+
+    /**
+     * @desc GPS 설정
+     */
+    private void moveToGPSOn() {
+        Intent intent = new Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS);
+        mGPSOnResult.launch(intent);
     }
 
     /**

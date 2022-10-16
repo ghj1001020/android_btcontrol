@@ -2,13 +2,13 @@ apply plugin: 'com.android.application'
 apply plugin: "androidx.navigation.safeargs"
 
 android {
-    compileSdkVersion 32
+    compileSdk 32
     buildToolsVersion '30.0.3'
 
     defaultConfig {
         applicationId "com.ghj.btcontrol"
         minSdkVersion 19
-        targetSdkVersion 32
+        targetSdk 32
         versionCode 100
         versionName "1.0.0"
 
