@@ -124,6 +124,8 @@ public class ScanFragment extends Fragment implements View.OnClickListener {
     public void init(){
         if(((MainActivity) getActivity()).getBTService().isEnabled()){
             stateOn();
+            // 서버리스닝 시작
+            ((MainActivity) getActivity()).getBTService().runListening();
         }else{
             stateOff();
         }

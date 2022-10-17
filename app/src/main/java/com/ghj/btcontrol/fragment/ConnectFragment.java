@@ -183,16 +183,6 @@ public class ConnectFragment extends Fragment {
     }
 
     /**
-     * @desc 연결화면 종료
-     */
-    public void CloseConnectActvitiy(){
-        ((MainActivity) getActivity()).getBTService().closeSocket();
-        mProgressDialog.dismiss();
-        Toast.makeText(getContext(), "연결이 종료되었습니다.", Toast.LENGTH_SHORT).show();
-//        finish();
-    }
-
-    /**
      * @desc HEX 유효성 체크
      */
     public boolean CheckHexValidation(){
@@ -221,10 +211,19 @@ public class ConnectFragment extends Fragment {
         }
     };
 
-    // 뒤로가기 연결끊기
-    public void onBackPressed() {
-        mProgressDialog.show();
+    /**
+     * @desc 연결화면 종료
+     */
+    public void CloseConnect(){
+        mProgressDialog.dismiss();
         ((MainActivity) getActivity()).getBTService().closeSocket();
+        Toast.makeText(getContext(), "연결이 종료되었습니다.", Toast.LENGTH_SHORT).show();
+        getParentFragmentManager().popBackStack();
+    }
+
+    // 뒤로가기
+    public void onBackPressed() {
+        CloseConnect();
     }
 
     // 읽기

@@ -75,7 +75,7 @@ public class BluetoothService {
     BluetoothDevice mRemoteDevice;
 
     int mPrevState;
-    boolean isClose;
+    boolean isClose = false;
     boolean isFailed = false;
     boolean isBondRequest = false;
 
@@ -114,7 +114,6 @@ public class BluetoothService {
         mPrevState = -1;
 
         onRegisterBluetooth();
-        runListening();
     }
 
 
@@ -252,9 +251,9 @@ public class BluetoothService {
 
     //서버소켓 닫기
     public void closeServerSocket(){
+        isClose = true;
         if(mServerSocket != null){
             try{
-                isClose = true;
                 mServerSocket.close();
                 mServerSocket = null;
             }catch (IOException e){
@@ -515,9 +514,7 @@ public class BluetoothService {
                         connectFailed(e.getMessage());
                     }
                 }finally {
-                    if(mServerSocket!=null){
-                        try{ mServerSocket.close(); mServerSocket = null; }catch (IOException e){}
-                    }
+                    closeServerSocket();
                 }
             }
         }
