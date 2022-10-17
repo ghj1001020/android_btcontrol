@@ -76,8 +76,8 @@ public class BluetoothService {
 
     int mPrevState;
     boolean isClose;
-    boolean isFailed;
-    boolean isBondRequest;
+    boolean isFailed = false;
+    boolean isBondRequest = false;
 
     BluetoothServerThread mBluetoothServerThread;
     BluetoothDataThread mBluetoothDataThread;
@@ -299,6 +299,8 @@ public class BluetoothService {
                             bundle.putParcelable("device", device);
                             intent.putExtras(bundle);
                             mActivity.sendBroadcast(intent);
+
+                            Log.d(TAG, "CLIENT Socket");
                         }
                     }
                 }catch (IOException e){
@@ -354,6 +356,8 @@ public class BluetoothService {
         @Override
         public void onReceive(Context context, Intent intent) {
             String action = intent.getAction();
+            Log.d(TAG, "action : " + action);
+
             if(BluetoothAdapter.ACTION_STATE_CHANGED.equals(action)){
                 int extra = intent.getIntExtra(BluetoothAdapter.EXTRA_STATE, -1);
                 if(BluetoothAdapter.STATE_ON == extra){
@@ -403,13 +407,15 @@ public class BluetoothService {
                 }
             }
             else if(BluetoothDevice.ACTION_BOND_STATE_CHANGED.equals(action)){
-                isBondRequest = true;
+
                 BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
                 int state = intent.getIntExtra(BluetoothDevice.EXTRA_BOND_STATE, BluetoothDevice.BOND_NONE);
                 int prevState = intent.getIntExtra(BluetoothDevice.EXTRA_PREVIOUS_BOND_STATE, BluetoothDevice.BOND_NONE);
 
                 Message msg = new Message();
+                Log.d(TAG, "bond state : " +prevState + " -> " + state);
                 if(state == BluetoothDevice.BOND_BONDED){
+                    isBondRequest = false;
                     if(state!=mPrevState){
                         mBonded.add(device);
                         msg.what = BONDED_HANDLER_CODE;
@@ -421,9 +427,11 @@ public class BluetoothService {
                     mPrevState = -1;
                 }
                 else if(state == BluetoothDevice.BOND_BONDING){
+                    isBondRequest = true;
                     mPrevState = prevState;
                 }
                 else if(state == BluetoothDevice.BOND_NONE){
+                    isBondRequest = false;
                     if(state!=mPrevState){
                         mBonded.remove(device);
                         mDevices.add(device);
@@ -442,7 +450,6 @@ public class BluetoothService {
                 }
             }
             else if(BluetoothAdapter.ACTION_CONNECTION_STATE_CHANGED.equals(action)){
-                Log.d("aaa", "ACTION_CONNECTION_STATE_CHANGED");
                 int state = intent.getIntExtra(BluetoothAdapter.EXTRA_CONNECTION_STATE, BluetoothAdapter.STATE_DISCONNECTED);
 
                 if(state == BluetoothAdapter.STATE_CONNECTED){
@@ -454,7 +461,6 @@ public class BluetoothService {
                 }
             }
             else if(BluetoothDevice.ACTION_ACL_CONNECTED.equals(action)){
-                Log.d("aaa", "BluetoothDevice.ACTION_ACL_CONNECTED");
 //                if(isBondRequest || isFailed){
 //                    return;
 //                }
@@ -464,7 +470,6 @@ public class BluetoothService {
 //                }
             }
             else if(BluetoothDevice.ACTION_ACL_DISCONNECTED.equals(action)){
-                Log.d("aaa", "BluetoothDevice.ACTION_ACL_DISCONNECTED");
                 if(isBondRequest){
                     isBondRequest = false;
                     return;
@@ -472,7 +477,6 @@ public class BluetoothService {
                 mHandler.sendEmptyMessage(DISCONNECTED_ACL_HANDLER_CODE);
             }
             else if(BTCConstants.BLUETOOTH_CONNECT_BROADCAST_ACTION.equals(action)){
-                Log.d("aaa", "BLUETOOTH_CONNECT_BROADCAST_ACTION");
                 if(isBondRequest || isFailed){
                     return;
                 }
@@ -503,9 +507,11 @@ public class BluetoothService {
                     bundle.putParcelable("device", device);
                     intent.putExtras(bundle);
                     mActivity.sendBroadcast(intent);
+
+                    Log.d(TAG, "SERVER Socket");
                 }catch (IOException e){
+                    e.printStackTrace();
                     if(!isClose){
-                        e.printStackTrace();
                         connectFailed(e.getMessage());
                     }
                 }finally {

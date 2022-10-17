@@ -336,8 +336,7 @@ public class ScanFragment extends Fragment implements View.OnClickListener {
      */
     public void connectSuccessACL() {
         pdConnect.dismiss();
-//        Intent intent = new Intent(mActivity, ConnectActivity.class);
-//        mConnectActivityResult.launch(intent);
+        moveToConnect();
     }
 
     /**

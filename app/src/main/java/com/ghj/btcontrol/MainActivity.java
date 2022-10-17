@@ -166,10 +166,30 @@ public class MainActivity extends BaseFragmentActivity {
                 if( getCurrentFragment() instanceof ScanFragment ) {
                     ((ScanFragment) getCurrentFragment()).disconnected();
                 }
+                else if( getCurrentFragment() instanceof ConnectFragment ) {
+                    ((ConnectFragment) getCurrentFragment()).CloseConnectActvitiy();
+                }
             }
             else if(msg.what == BluetoothService.DISCONNECTED_ACL_HANDLER_CODE){
                 if( getCurrentFragment() instanceof ScanFragment ) {
                     ((ScanFragment) getCurrentFragment()).disconnectedACL();
+                }
+                else if( getCurrentFragment() instanceof ConnectFragment ) {
+                    ((ConnectFragment) getCurrentFragment()).CloseConnectActvitiy();
+                }
+            }
+            else if(msg.what == BluetoothService.READ_MESSAGE_HANDLER_CODE) {
+                Bundle data = msg.getData();
+                byte[] msgArr = data.getByteArray("message");
+                if( getCurrentFragment() instanceof ConnectFragment ) {
+                    ((ConnectFragment) getCurrentFragment()).readedMessage(msgArr);
+                }
+            }
+            else if(msg.what == BluetoothService.WRITE_MESSAGE_HANDLER_CODE ) {
+                Bundle data = msg.getData();
+                byte[] msgArr = data.getByteArray("message");
+                if( getCurrentFragment() instanceof ConnectFragment ) {
+                    ((ConnectFragment) getCurrentFragment()).writedMessage(msgArr);
                 }
             }
         }
