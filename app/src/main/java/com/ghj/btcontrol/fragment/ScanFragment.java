@@ -19,6 +19,7 @@ import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
+import androidx.fragment.app.FragmentResultListener;
 import androidx.navigation.fragment.NavHostFragment;
 
 import com.ghj.btcontrol.BaseFragmentActivity;
@@ -122,6 +123,14 @@ public class ScanFragment extends Fragment implements View.OnClickListener {
      * @desc 최초 환경 세팅
      */
     public void init(){
+        getParentFragmentManager().setFragmentResultListener("CONNECT", this, new FragmentResultListener() {
+            @Override
+            public void onFragmentResult(@NonNull String requestKey, @NonNull Bundle result) {
+                String close = result.getString("CLOSE", "");
+                if("Y".equals(close)) {}
+            }
+        });
+
         if(((MainActivity) getActivity()).getBTService().isEnabled()){
             stateOn();
             // 서버리스닝 시작

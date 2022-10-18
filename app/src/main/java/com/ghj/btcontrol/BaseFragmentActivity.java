@@ -45,12 +45,20 @@ public abstract class BaseFragmentActivity extends BaseActivity {
         return getChildFragmentManager().getFragments().get(0);
     }
 
-    private NavController getNavController() {
+    public NavController getNavController() {
         return Navigation.findNavController(this, getFragmentID());
     }
 
-    private FragmentManager getChildFragmentManager() {
+    public FragmentManager getChildFragmentManager() {
         return getSupportFragmentManager().findFragmentById(getFragmentID()).getChildFragmentManager();
+    }
+
+    public boolean popStack() {
+        int cnt = getChildFragmentManager().getBackStackEntryCount();
+        if(cnt > 0) {
+            return getNavController().popBackStack();
+        }
+        return false;
     }
 
     @Override

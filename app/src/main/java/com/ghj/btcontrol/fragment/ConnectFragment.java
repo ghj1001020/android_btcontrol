@@ -216,14 +216,19 @@ public class ConnectFragment extends Fragment {
      */
     public void CloseConnect(){
         mProgressDialog.dismiss();
-        ((MainActivity) getActivity()).getBTService().closeSocket();
+        ((MainActivity) getActivity()).getBTService().disconnectSocket();
         Toast.makeText(getContext(), "연결이 종료되었습니다.", Toast.LENGTH_SHORT).show();
-        getParentFragmentManager().popBackStack();
+
+        Bundle bundle = new Bundle();
+        bundle.putString("CLOSE", "Y");
+        getParentFragmentManager().setFragmentResult("CONNECT", bundle);
+        ((MainActivity) getActivity()).popStack();
     }
 
     // 뒤로가기
     public void onBackPressed() {
-        CloseConnect();
+        mProgressDialog.show();
+        ((MainActivity) getActivity()).getBTService().closeSocket();
     }
 
     // 읽기

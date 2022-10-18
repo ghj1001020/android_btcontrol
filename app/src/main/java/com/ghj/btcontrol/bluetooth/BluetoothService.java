@@ -179,7 +179,7 @@ public class BluetoothService {
             // scan device
             if(mBTAdapter.isEnabled() && !mBTAdapter.isDiscovering()){
                 boolean scan = mBTAdapter.startDiscovery();
-                Log.d(TAG, scan + "scan = " + scan);
+                Log.d(TAG, "scan = " + scan);
             }
         }
     }
@@ -264,13 +264,24 @@ public class BluetoothService {
 
     //소켓닫기
     public void closeSocket(){
-        try{
+        disconnectSocket();
+        closeServerSocket();
+    }
+
+    // 연결끊기
+    public void disconnectSocket() {
+        try {
             if(mSocket!=null) {
                 mSocket.close();
                 mSocket = null;
             }
-            closeServerSocket();
-        }catch (IOException e){
+            if(mBluetoothDataThread !=null) {
+                mBluetoothDataThread.interrupt();
+                mBluetoothDataThread.closeStream();
+                mBluetoothDataThread = null;
+            }
+        }
+        catch (IOException e) {
             e.printStackTrace();
         }
     }
@@ -285,9 +296,9 @@ public class BluetoothService {
         new Thread(){
             @Override
             public void run() {
-                try{
-                    isFailed = false;
-                    if(PermissionUtil.checkBluetoothPermission(mActivity)) {
+                isFailed = false;
+                if(PermissionUtil.checkBluetoothPermission(mActivity)) {
+                    try{
                         if(!mSocket.isConnected()){
                             mSocket.connect();
                             mBluetoothDataThread = new BluetoothDataThread(mSocket);
@@ -301,10 +312,10 @@ public class BluetoothService {
 
                             Log.d(TAG, "CLIENT Socket");
                         }
+                    }catch (IOException e){
+                        e.printStackTrace();
+                        connectFailed(e.getMessage());
                     }
-                }catch (IOException e){
-                    e.printStackTrace();
-                    connectFailed(e.getMessage());
                 }
             }
         }.start();
@@ -563,10 +574,10 @@ public class BluetoothService {
                         mHandler.sendMessage(msg);
                     }
                 }catch (IOException e){
+                    e.printStackTrace();
                     if(mSocket==null || mSocket.isConnected()){
                         break;
                     }
-                    e.printStackTrace();
                 }
             }
         }
@@ -589,6 +600,26 @@ public class BluetoothService {
                 mHandler.sendMessage(msg);
             }catch (IOException e){
                 e.printStackTrace();
+            }
+        }
+
+        // 스트림닫기
+        public void closeStream() {
+            if(mInputStream != null) {
+                try {
+                    mInputStream.close();
+                }
+                catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+            if(mOutputStream != null) {
+                try {
+                    mOutputStream.close();
+                }
+                catch (IOException e) {
+                    e.printStackTrace();
+                }
             }
         }
     }
