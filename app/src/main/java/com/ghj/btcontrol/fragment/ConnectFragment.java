@@ -2,11 +2,11 @@ package com.ghj.btcontrol.fragment;
 
 import android.app.ProgressDialog;
 import android.bluetooth.BluetoothDevice;
+import android.content.Intent;
 import android.graphics.Color;
+import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
-import android.os.Handler;
-import android.os.Message;
 import android.text.Editable;
 import android.text.Html;
 import android.text.TextWatcher;
@@ -28,15 +28,14 @@ import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 
 import com.ghj.btcontrol.BaseFragmentActivity;
-import com.ghj.btcontrol.ConnectActivity;
 import com.ghj.btcontrol.MainActivity;
 import com.ghj.btcontrol.R;
-import com.ghj.btcontrol.bluetooth.BluetoothService;
 import com.ghj.btcontrol.util.PermissionUtil;
+import com.ghj.btcontrol.util.Util;
 
-public class ConnectFragment extends Fragment {
+public class ConnectFragment extends Fragment implements View.OnClickListener {
 
-    ImageButton btnSend, btnBack;
+    ImageButton btnSend, btnBack, btnAttach;
     TextView txtRName, txtRMAC, txtRType, txtMessage;
     EditText editMessage;
     ProgressDialog mProgressDialog;
@@ -72,9 +71,9 @@ public class ConnectFragment extends Fragment {
 
         //ui
         btnBack = (ImageButton)view.findViewById(R.id.btnBack);
-        btnBack.setOnClickListener(mOnClickListener);
+        btnBack.setOnClickListener(this);
         btnClear = (Button)view.findViewById(R.id.btnClear);
-        btnClear.setOnClickListener(mOnClickListener);
+        btnClear.setOnClickListener(this);
         txtRName = view.findViewById(R.id.txtRName);
         txtRMAC = view.findViewById(R.id.txtRMAC);
         txtRType = view.findViewById(R.id.txtRType);
@@ -83,7 +82,9 @@ public class ConnectFragment extends Fragment {
         mProgressDialog.setCancelable(false);
         editMessage = view.findViewById(R.id.editMessage);
         btnSend = view.findViewById(R.id.btnSend);
-        btnSend.setOnClickListener(mOnClickListener);
+        btnSend.setOnClickListener(this);
+        btnAttach = view.findViewById(R.id.btnAttach);
+        btnAttach.setOnClickListener(this);
         txtMessage = view.findViewById(R.id.txtMessage);
         boxEdit = view.findViewById(R.id.boxEdit);
         scrMessage = view.findViewById(R.id.scrMessage);
@@ -116,6 +117,17 @@ public class ConnectFragment extends Fragment {
         mRemoteDevice = ((MainActivity) getActivity()).getBTService().getRemoteDevice();
 
         initData();
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        if( ((MainActivity) getActivity()).getBTService().isConnected() ) {
+            Toast.makeText(getContext(), "Connected", Toast.LENGTH_SHORT).show();
+        }
+        else {
+            Toast.makeText(getContext(), "Disconnected", Toast.LENGTH_SHORT).show();
+        }
     }
 
     /**
@@ -152,15 +164,7 @@ public class ConnectFragment extends Fragment {
      */
     public void SendMessage(){
         String message = editMessage.getText().toString();
-        ((MainActivity) getActivity()).getBTService().sendString(StringToByteArr(message));
-    }
-
-    /**
-     * @desc string to byte[]
-     */
-    public byte[] StringToByteArr(String message){
-        byte[] msgArr = message.getBytes();
-        return msgArr;
+        ((MainActivity) getActivity()).getBTService().sendString(message);
     }
 
     /**
@@ -191,25 +195,23 @@ public class ConnectFragment extends Fragment {
         return str.matches("^([0-9a-fA-F]{2})+$");
     }
 
-    /**
-     * @desc 클릭 리스너
-     */
-    View.OnClickListener mOnClickListener = new View.OnClickListener() {
-        @Override
-        public void onClick(View v) {
-            switch (v.getId()){
-                case R.id.btnBack:
-                    onBackPressed();
-                    break;
-                case R.id.btnSend:
-                    SendMessage();
-                    break;
-                case R.id.btnClear:
-                    ClearMessage();
-                    break;
-            }
+    @Override
+    public void onClick(View v) {
+        switch (v.getId()){
+            case R.id.btnBack:
+                onBackPressed();
+                break;
+            case R.id.btnSend:
+                SendMessage();
+                break;
+            case R.id.btnClear:
+                ClearMessage();
+                break;
+            case R.id.btnAttach:
+                ((MainActivity) getActivity()).callSAF();
+                break;
         }
-    };
+    }
 
     /**
      * @desc 연결화면 종료
@@ -244,8 +246,7 @@ public class ConnectFragment extends Fragment {
     }
 
     // 쓰기
-    public void writedMessage(byte[] msgArr) {
-        String message = ByteArrToHexString(msgArr);
+    public void writedMessage(String message) {
         editMessage.setText("");
         if(Build.VERSION.SDK_INT >= 24) {
             txtMessage.append(Html.fromHtml("<font color=#FF4848>나 >></font><br/>", Html.FROM_HTML_MODE_COMPACT));
@@ -254,5 +255,25 @@ public class ConnectFragment extends Fragment {
             txtMessage.append(Html.fromHtml("<font color=#FF4848>나 >></font><br/>"));
             txtMessage.append(message+"\n");
         }
+    }
+
+    // 파일전송 쓰기
+    public void writedFile(String filename, int filesize) {
+        String message = filename + " , " + Util.CalculateFileSize(filesize);
+        editMessage.setText("");
+        if(Build.VERSION.SDK_INT >= 24) {
+            txtMessage.append(Html.fromHtml("<font color=#FF4848>나 >></font><br/>", Html.FROM_HTML_MODE_COMPACT));
+            txtMessage.append(message+"\n");
+        }else{
+            txtMessage.append(Html.fromHtml("<font color=#FF4848>나 >></font><br/>"));
+            txtMessage.append(message+"\n");
+        }
+    }
+
+    // 파일전송
+    public void SendFile(Uri uri) {
+        String filename = Util.getFilenameFromUri(getContext(), uri);
+        byte[] bytes = Util.UriToByteArray(getContext(), uri);
+        ((MainActivity) getActivity()).getBTService().sendFile(filename, bytes);
     }
 }

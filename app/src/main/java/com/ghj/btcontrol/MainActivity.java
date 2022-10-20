@@ -7,10 +7,13 @@ import android.bluetooth.BluetoothDevice;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.Message;
+import android.util.Log;
 
 import androidx.activity.result.ActivityResult;
 import androidx.activity.result.ActivityResultCallback;
@@ -28,10 +31,18 @@ import com.ghj.btcontrol.bluetooth.BluetoothService;
 import com.ghj.btcontrol.fragment.ConnectFragment;
 import com.ghj.btcontrol.fragment.ScanFragment;
 import com.ghj.btcontrol.util.PermissionUtil;
+import com.ghj.btcontrol.util.Util;
 
+import java.io.BufferedInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.lang.ref.WeakReference;
+import java.nio.ByteBuffer;
 
 public class MainActivity extends BaseFragmentActivity {
+
+    private final String TAG = "MainActivity";
 
     private final Handler mBTHandler = new BTHandler(this);
     private BluetoothService mBTService;
@@ -40,6 +51,25 @@ public class MainActivity extends BaseFragmentActivity {
     ActivityResultLauncher<Intent> mDiscovery = registerForActivityResult(
             new ActivityResultContracts.StartActivityForResult(),
             result -> {}
+    );
+
+    // SAF에서 파일선택 후 콜백
+    ActivityResultLauncher<Intent> mSAF = registerForActivityResult(
+            new ActivityResultContracts.StartActivityForResult(),
+            (ActivityResult result) -> {
+                if(result.getResultCode() == Activity.RESULT_OK) {
+                    if(result.getData() == null) return;
+                    Uri uri = result.getData().getData();
+                    if(uri != null) {
+                        Log.d(TAG, uri.getPath() + " , " + uri.toString());
+
+                        if(getCurrentFragment() instanceof ConnectFragment) {
+
+                            ((ConnectFragment) getCurrentFragment()).SendFile(uri);
+                        }
+                    }
+                }
+            }
     );
 
 
@@ -200,9 +230,17 @@ public class MainActivity extends BaseFragmentActivity {
             }
             else if(msg.what == BluetoothService.WRITE_MESSAGE_HANDLER_CODE ) {
                 Bundle data = msg.getData();
-                byte[] msgArr = data.getByteArray("message");
+                String message = data.getString("message");
                 if( mActivity.get().getCurrentFragment() instanceof ConnectFragment ) {
-                    ((ConnectFragment) mActivity.get().getCurrentFragment()).writedMessage(msgArr);
+                    ((ConnectFragment) mActivity.get().getCurrentFragment()).writedMessage(message);
+                }
+            }
+            else if(msg.what == BluetoothService.WRITE_FILE_HANDLER_CODE) {
+                Bundle data = msg.getData();
+                String filename = data.getString("filename");
+                int filesize = data.getInt("filesize");
+                if( mActivity.get().getCurrentFragment() instanceof ConnectFragment ) {
+                    ((ConnectFragment) mActivity.get().getCurrentFragment()).writedFile(filename, filesize);
                 }
             }
         }
@@ -215,6 +253,14 @@ public class MainActivity extends BaseFragmentActivity {
             return;
         }
         super.onBackPressed();
+    }
+
+    // SAF 호출
+    public void callSAF() {
+        Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
+        intent.addCategory(Intent.CATEGORY_OPENABLE);
+        intent.setType("*/*");
+        mSAF.launch(intent);
     }
 }
 

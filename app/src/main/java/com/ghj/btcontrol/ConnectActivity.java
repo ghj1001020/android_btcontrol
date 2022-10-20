@@ -315,7 +315,7 @@ public class ConnectActivity extends AppCompatActivity {
                 message += "0A";
             }
         }
-        mBTService.sendString(StringToByteArr(message));
+        mBTService.sendString(message);
     }
 
     /**

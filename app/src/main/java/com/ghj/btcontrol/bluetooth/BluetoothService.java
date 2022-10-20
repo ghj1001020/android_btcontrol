@@ -1,6 +1,5 @@
 package com.ghj.btcontrol.bluetooth;
 
-import android.Manifest;
 import android.app.Activity;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
@@ -10,26 +9,24 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
-import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
+import android.text.TextUtils;
 import android.util.Log;
-
-import androidx.activity.result.ActivityResultLauncher;
-import androidx.activity.result.contract.ActivityResultContracts;
-import androidx.core.app.ActivityCompat;
-import androidx.core.content.ContextCompat;
 
 import com.ghj.btcontrol.data.BTCConstants;
 import com.ghj.btcontrol.util.PermissionUtil;
+import com.ghj.btcontrol.util.Util;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.lang.reflect.Method;
-
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
@@ -61,6 +58,7 @@ public class BluetoothService {
     public final static int DISCONNECTED_ACL_HANDLER_CODE = 3005;
     public final static int READ_MESSAGE_HANDLER_CODE = 4000;
     public final static int WRITE_MESSAGE_HANDLER_CODE = 4001;
+    public final static int WRITE_FILE_HANDLER_CODE = 4002;
 
 
     BluetoothAdapter mBTAdapter;
@@ -172,6 +170,14 @@ public class BluetoothService {
         return mBTAdapter.isEnabled();
     }
 
+    //블루투스 연결
+    public boolean isConnected() {
+        if(mBTAdapter == null) return false;
+        if(isEnabled()) return false;
+        if(mSocket == null) return false;
+
+        return mSocket.isConnected();
+    }
 
     //기기 검색하기
     public void startScanDevice(){
@@ -332,13 +338,62 @@ public class BluetoothService {
     }
 
     //문자보내기
-    public void sendString(byte[] message){
-        if(message==null || message.length==0){
+    public void sendString(String message){
+        if(TextUtils.isEmpty(message)){
             return;
         }
 
-        if(mBluetoothDataThread!=null){
-            mBluetoothDataThread.write(message);
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        try {
+            // 0x00 텍스트 0x01 파일
+            byte[] type = new byte[]{0x00};
+            baos.write(type);
+            // 텍스트
+            byte[] baText = message.getBytes(StandardCharsets.UTF_8);
+            baos.write(baText);
+
+            if(mBluetoothDataThread!=null){
+                mBluetoothDataThread.write(baos.toByteArray());
+            }
+        }
+        catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    //파일보내기
+    public void sendFile(String filename, byte[] bytes) {
+        if(bytes==null || bytes.length==0){
+            return;
+        }
+
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        try {
+            // 0x00 텍스트 0x01 파일
+            byte[] type = new byte[]{0x01};
+            baos.write(type);
+            // 파일명
+            if(TextUtils.isEmpty(filename)) {
+                filename = "UnknownFile";
+            }
+            byte[] baFilename = filename.getBytes(StandardCharsets.UTF_8);
+            byte[] baFilenameLen = Util.IntToByteArray(baFilename.length);
+            baos.write(baFilenameLen);
+            baos.write(baFilename);
+            // 파일사이즈
+            byte[] baFileSize = Util.IntToByteArray(bytes.length);
+            baos.write(baFileSize);
+            Log.d(TAG, baos.toString());
+
+            // 파일데이터
+            baos.write(bytes);
+
+            if(mBluetoothDataThread!=null){
+                mBluetoothDataThread.write(baos.toByteArray());
+            }
+        }
+        catch (IOException e) {
+            e.printStackTrace();
         }
     }
 
@@ -592,12 +647,31 @@ public class BluetoothService {
                 mOutputStream.write(message);
                 mOutputStream.flush();
 
-                Message msg = mHandler.obtainMessage();
-                msg.what = BluetoothService.WRITE_MESSAGE_HANDLER_CODE;
-                Bundle bundle = msg.getData();
-                bundle.putByteArray("message", message);
-                msg.setData(bundle);
-                mHandler.sendMessage(msg);
+                // 텍스트
+                if(message[0] == 0x00) {
+                    String text = new String(Arrays.copyOfRange(message, 1, message.length), StandardCharsets.UTF_8);
+
+                    Message msg = mHandler.obtainMessage();
+                    msg.what = BluetoothService.WRITE_MESSAGE_HANDLER_CODE;
+                    Bundle bundle = msg.getData();
+                    bundle.putString("message", text);
+                    msg.setData(bundle);
+                    mHandler.sendMessage(msg);
+                }
+                // 파일
+                else if(message[0] == 0x01) {
+                    int len = Util.ByteArrayToInt(Arrays.copyOfRange(message, 1, 5));
+                    String filename = new String(Arrays.copyOfRange(message, 5, 5+len), StandardCharsets.UTF_8);
+                    int filesize = Util.ByteArrayToInt(Arrays.copyOfRange(message, 5+len, 5+len+4));
+
+                    Message msg = mHandler.obtainMessage();
+                    msg.what = BluetoothService.WRITE_FILE_HANDLER_CODE;
+                    Bundle bundle = msg.getData();
+                    bundle.putString("filename", filename);
+                    bundle.putInt("filesize", filesize);
+                    msg.setData(bundle);
+                    mHandler.sendMessage(msg);
+                }
             }catch (IOException e){
                 e.printStackTrace();
             }

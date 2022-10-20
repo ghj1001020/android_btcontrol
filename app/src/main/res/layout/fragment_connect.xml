@@ -115,14 +115,21 @@
 
     <LinearLayout
         android:id="@+id/boxEdit"
-        android:paddingLeft="16dp"
-        android:paddingRight="16dp"
         android:background="#eee"
         android:gravity="center_vertical"
         android:orientation="horizontal"
         android:layout_width="match_parent"
-        android:layout_height="48dp"
+        android:layout_height="56dp"
         app:layout_constraintBottom_toBottomOf="parent">
+
+        <ImageButton
+            android:id="@+id/btnAttach"
+            android:src="@drawable/ic_attach"
+            android:scaleType="centerInside"
+            android:background="@drawable/con_btn_send"
+            android:padding="8dp"
+            android:layout_width="56dp"
+            android:layout_height="56dp"/>
 
         <EditText
             android:id="@+id/editMessage"
@@ -137,16 +144,17 @@
             android:maxLength="600"
             android:inputType="text"
             android:imeOptions="actionDone"
+            android:layout_marginLeft="4dp"
             android:layout_weight="1"
             android:layout_width="0dp"
-            android:layout_height="33dp"/>
+            android:layout_height="48dp"/>
 
         <ImageButton
             android:id="@+id/btnSend"
             android:src="@drawable/ic_send"
             android:scaleType="centerInside"
             android:background="@drawable/con_btn_send"
-            android:layout_marginLeft="12dp"
+            android:layout_marginLeft="4dp"
             android:padding="12dp"
             android:layout_width="48dp"
             android:layout_height="48dp"/>
