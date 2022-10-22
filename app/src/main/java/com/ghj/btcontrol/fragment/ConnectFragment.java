@@ -234,8 +234,7 @@ public class ConnectFragment extends Fragment implements View.OnClickListener {
     }
 
     // 읽기
-    public void readedMessage(byte[] msgArr) {
-        String message = ByteArrToHexString(msgArr);
+    public void readedMessage(String message) {
         if(Build.VERSION.SDK_INT >= 24){
             txtMessage.append(Html.fromHtml("<font color=#00A2D5>"+mRemoteName+" >></font><br/>", Html.FROM_HTML_MODE_COMPACT));
             txtMessage.append(message+"\n");
@@ -253,6 +252,18 @@ public class ConnectFragment extends Fragment implements View.OnClickListener {
             txtMessage.append(message+"\n");
         }else{
             txtMessage.append(Html.fromHtml("<font color=#FF4848>나 >></font><br/>"));
+            txtMessage.append(message+"\n");
+        }
+    }
+
+    // 파일전송 읽기
+    public void readedFile(String filename, int filesize) {
+        String message = filename + " , " + Util.CalculateFileSize(filesize);
+        if(Build.VERSION.SDK_INT >= 24){
+            txtMessage.append(Html.fromHtml("<font color=#00A2D5>"+mRemoteName+" >></font><br/>", Html.FROM_HTML_MODE_COMPACT));
+            txtMessage.append(message+"\n");
+        }else{
+            txtMessage.append(Html.fromHtml("<font color=#00A2D5>"+mRemoteName+" >></font><br/>"));
             txtMessage.append(message+"\n");
         }
     }

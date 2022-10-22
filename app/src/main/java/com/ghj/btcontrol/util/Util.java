@@ -11,6 +11,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 
 public class Util {
 
@@ -92,5 +93,16 @@ public class Util {
             unitIdx++;
         }
         return Math.round(size*100)/100.0 + unit[unitIdx];
+    }
+
+    /**
+     * byte array -> String 변환
+     */
+    public static String ByteArrayToString(byte[] bytes) {
+        if(bytes == null || bytes.length == 0) {
+            return "";
+        }
+
+        return new String(bytes, StandardCharsets.UTF_8).trim();
     }
 }

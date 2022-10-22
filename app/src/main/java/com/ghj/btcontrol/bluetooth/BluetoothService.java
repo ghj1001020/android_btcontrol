@@ -6,12 +6,17 @@ import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothServerSocket;
 import android.bluetooth.BluetoothSocket;
 import android.content.BroadcastReceiver;
+import android.content.ContentResolver;
+import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.net.Uri;
 import android.os.Bundle;
+import android.os.Environment;
 import android.os.Handler;
 import android.os.Message;
+import android.provider.MediaStore;
 import android.text.TextUtils;
 import android.util.Log;
 
@@ -20,6 +25,8 @@ import com.ghj.btcontrol.util.PermissionUtil;
 import com.ghj.btcontrol.util.Util;
 
 import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -58,7 +65,8 @@ public class BluetoothService {
     public final static int DISCONNECTED_ACL_HANDLER_CODE = 3005;
     public final static int READ_MESSAGE_HANDLER_CODE = 4000;
     public final static int WRITE_MESSAGE_HANDLER_CODE = 4001;
-    public final static int WRITE_FILE_HANDLER_CODE = 4002;
+    public final static int READ_FILE_HANDLER_CODE = 4002;
+    public final static int WRITE_FILE_HANDLER_CODE = 4003;
 
 
     BluetoothAdapter mBTAdapter;
@@ -350,6 +358,9 @@ public class BluetoothService {
             baos.write(type);
             // 텍스트
             byte[] baText = message.getBytes(StandardCharsets.UTF_8);
+            // 텍스트 크기
+            byte[] baTextLen = Util.IntToByteArray(baText.length);
+            baos.write(baTextLen);
             baos.write(baText);
 
             if(mBluetoothDataThread!=null){
@@ -614,19 +625,67 @@ public class BluetoothService {
             byte[] buffer = new byte[2048];
             while(mSocket!=null && mSocket.isConnected()){
                 try{
-                    int len = 0;
-                    while( (len = mInputStream.read(buffer)) != -1 ){
-                        String str = new String(buffer, 0, len);
-                        Log.d("aaa", str);
+                    Arrays.fill(buffer, (byte)0x00);
+                    mInputStream.read(buffer, 0, 1);
 
-                        byte[] msgArr = new byte[len];
-                        System.arraycopy(buffer, 0, msgArr, 0, len);
+                    // 텍스트
+                    if(buffer[0] == 0x00) {
+                        Arrays.fill(buffer, (byte)0x00);
+                        mInputStream.read(buffer, 0, 4);
+                        int toReadLen = Util.ByteArrayToInt(buffer);
+                        int len = 0;
+                        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+                        Arrays.fill(buffer, (byte)0x00);
+                        while( (len = mInputStream.read(buffer)) != -1 ){
+                            baos.write( buffer, 0, len );
+                            if(toReadLen <= baos.size()) {
+                                break;
+                            }
+                        }
+
+                        String message = baos.toString("UTF-8");
                         Message msg = mHandler.obtainMessage();
                         msg.what = READ_MESSAGE_HANDLER_CODE;
                         Bundle bundle = msg.getData();
-                        bundle.putByteArray("message", msgArr);
+                        bundle.putString("message", message);
                         msg.setData(bundle);
                         mHandler.sendMessage(msg);
+                    }
+                    // 파일
+                    else if(buffer[0] == 0x01) {
+                        // 파일명
+                        Arrays.fill(buffer, (byte)0x00);
+                        mInputStream.read(buffer, 0, 4);
+                        int filenameLen = Util.ByteArrayToInt(buffer);
+                        Arrays.fill(buffer, (byte)0x00);
+                        mInputStream.read(buffer, 0, filenameLen);
+                        String filename = Util.ByteArrayToString(buffer);
+                        // 파일사이즈
+                        Arrays.fill(buffer, (byte)0x00);
+                        mInputStream.read(buffer, 0, 4);
+                        int filesize = Util.ByteArrayToInt(buffer);
+
+                        Message msg = mHandler.obtainMessage();
+                        msg.what = READ_FILE_HANDLER_CODE;
+                        Bundle bundle = msg.getData();
+                        bundle.putString("filename", filename);
+                        bundle.putInt("filesize", filesize);
+                        msg.setData(bundle);
+                        mHandler.sendMessage(msg);
+
+                        // 파일 다운로드
+                        OutputStream os = getOutputStream(filename);
+                        int len = 0, sum = 0;
+                        Arrays.fill(buffer, (byte)0x00);
+                        while( (len = mInputStream.read(buffer)) != -1 ) {
+                            os.write(buffer, 0, len);
+                            os.flush();
+                            sum += len;
+                            if(filesize <= sum) {
+                                break;
+                            }
+                        }
+                        os.close();
                     }
                 }catch (IOException e){
                     e.printStackTrace();
@@ -649,7 +708,7 @@ public class BluetoothService {
 
                 // 텍스트
                 if(message[0] == 0x00) {
-                    String text = new String(Arrays.copyOfRange(message, 1, message.length), StandardCharsets.UTF_8);
+                    String text = new String(Arrays.copyOfRange(message, 5, message.length), StandardCharsets.UTF_8);
 
                     Message msg = mHandler.obtainMessage();
                     msg.what = BluetoothService.WRITE_MESSAGE_HANDLER_CODE;
@@ -660,9 +719,9 @@ public class BluetoothService {
                 }
                 // 파일
                 else if(message[0] == 0x01) {
-                    int len = Util.ByteArrayToInt(Arrays.copyOfRange(message, 1, 5));
-                    String filename = new String(Arrays.copyOfRange(message, 5, 5+len), StandardCharsets.UTF_8);
-                    int filesize = Util.ByteArrayToInt(Arrays.copyOfRange(message, 5+len, 5+len+4));
+                    int filenameLen = Util.ByteArrayToInt(Arrays.copyOfRange(message, 1, 5));
+                    String filename = new String(Arrays.copyOfRange(message, 5, 5+filenameLen), StandardCharsets.UTF_8);
+                    int filesize = Util.ByteArrayToInt(Arrays.copyOfRange(message, 5+filenameLen, 5+filenameLen+4));
 
                     Message msg = mHandler.obtainMessage();
                     msg.what = BluetoothService.WRITE_FILE_HANDLER_CODE;
@@ -695,6 +754,35 @@ public class BluetoothService {
                     e.printStackTrace();
                 }
             }
+        }
+    }
+
+    // 파일다운로드 Output 스트림
+    private OutputStream getOutputStream(String filename) {
+        OutputStream fos = null;
+        try {
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
+                Uri fileUri = null;
+                ContentValues cv = new ContentValues();
+                cv.put(MediaStore.Files.FileColumns.DISPLAY_NAME, filename);
+                cv.put(MediaStore.Files.FileColumns.MIME_TYPE, "application/octet-stream");
+                cv.put(MediaStore.Files.FileColumns.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS + File.separator + BTCConstants.APPNAME);
+                fileUri = mActivity.getContentResolver().insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, cv);
+                fos = mActivity.getContentResolver().openOutputStream(fileUri);
+            }
+            else {
+                File dir = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS) + File.separator + BTCConstants.APPNAME);
+                if(!dir.exists()) {
+                    dir.mkdir();
+                }
+                File file = new File(dir, filename);
+                fos = new FileOutputStream(file);
+            }
+            return fos;
+        }
+        catch (IOException e) {
+            e.printStackTrace();
+            return null;
         }
     }
 }

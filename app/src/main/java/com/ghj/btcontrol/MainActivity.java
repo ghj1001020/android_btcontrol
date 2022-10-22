@@ -223,9 +223,9 @@ public class MainActivity extends BaseFragmentActivity {
             }
             else if(msg.what == BluetoothService.READ_MESSAGE_HANDLER_CODE) {
                 Bundle data = msg.getData();
-                byte[] msgArr = data.getByteArray("message");
+                String message = data.getString("message");
                 if( mActivity.get().getCurrentFragment() instanceof ConnectFragment ) {
-                    ((ConnectFragment) mActivity.get().getCurrentFragment()).readedMessage(msgArr);
+                    ((ConnectFragment) mActivity.get().getCurrentFragment()).readedMessage(message);
                 }
             }
             else if(msg.what == BluetoothService.WRITE_MESSAGE_HANDLER_CODE ) {
@@ -233,6 +233,14 @@ public class MainActivity extends BaseFragmentActivity {
                 String message = data.getString("message");
                 if( mActivity.get().getCurrentFragment() instanceof ConnectFragment ) {
                     ((ConnectFragment) mActivity.get().getCurrentFragment()).writedMessage(message);
+                }
+            }
+            else if( msg.what == BluetoothService.READ_FILE_HANDLER_CODE ) {
+                Bundle data = msg.getData();
+                String filename = data.getString("filename");
+                int filesize = data.getInt("filesize");
+                if( mActivity.get().getCurrentFragment() instanceof ConnectFragment ) {
+                    ((ConnectFragment) mActivity.get().getCurrentFragment()).readedFile(filename, filesize);
                 }
             }
             else if(msg.what == BluetoothService.WRITE_FILE_HANDLER_CODE) {
