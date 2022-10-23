@@ -33,7 +33,12 @@ import com.ghj.btcontrol.R;
 import com.ghj.btcontrol.util.PermissionUtil;
 import com.ghj.btcontrol.util.Util;
 
+import java.util.List;
+
 public class ConnectFragment extends Fragment implements View.OnClickListener {
+
+    // 보내는사람여부
+    private boolean mSender = false;
 
     ImageButton btnSend, btnBack, btnAttach;
     TextView txtRName, txtRMAC, txtRType, txtMessage;
@@ -69,11 +74,13 @@ public class ConnectFragment extends Fragment implements View.OnClickListener {
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
 
+        if(getArguments() != null){
+            mSender = getArguments().getBoolean("sender", false);
+        }
+
         //ui
         btnBack = (ImageButton)view.findViewById(R.id.btnBack);
-        btnBack.setOnClickListener(this);
         btnClear = (Button)view.findViewById(R.id.btnClear);
-        btnClear.setOnClickListener(this);
         txtRName = view.findViewById(R.id.txtRName);
         txtRMAC = view.findViewById(R.id.txtRMAC);
         txtRType = view.findViewById(R.id.txtRType);
@@ -82,36 +89,46 @@ public class ConnectFragment extends Fragment implements View.OnClickListener {
         mProgressDialog.setCancelable(false);
         editMessage = view.findViewById(R.id.editMessage);
         btnSend = view.findViewById(R.id.btnSend);
-        btnSend.setOnClickListener(this);
         btnAttach = view.findViewById(R.id.btnAttach);
-        btnAttach.setOnClickListener(this);
         txtMessage = view.findViewById(R.id.txtMessage);
         boxEdit = view.findViewById(R.id.boxEdit);
         scrMessage = view.findViewById(R.id.scrMessage);
 
-        editMessage.setOnEditorActionListener(new TextView.OnEditorActionListener() {
-            @Override
-            public boolean onEditorAction(TextView v, int actionId, KeyEvent event) {
-                final boolean isEnterEvent = event != null && event.getKeyCode()==KeyEvent.KEYCODE_ENTER;
+        btnBack.setOnClickListener(this);
+        btnClear.setOnClickListener(this);
 
-                //엔터 치면 보내기
-                if(actionId == EditorInfo.IME_ACTION_DONE || isEnterEvent){
-                    SendMessage();
-                    return true;
+        if(mSender) {
+            btnSend.setOnClickListener(this);
+            btnAttach.setOnClickListener(this);
+            editMessage.setOnEditorActionListener(new TextView.OnEditorActionListener() {
+                @Override
+                public boolean onEditorAction(TextView v, int actionId, KeyEvent event) {
+                    final boolean isEnterEvent = event != null && event.getKeyCode()==KeyEvent.KEYCODE_ENTER;
+
+                    //엔터 치면 보내기
+                    if(actionId == EditorInfo.IME_ACTION_DONE || isEnterEvent){
+                        SendMessage();
+                        return true;
+                    }
+                    return false;
                 }
-                return false;
-            }
-        });
-        editMessage.addTextChangedListener(new TextWatcher() {
-            @Override
-            public void beforeTextChanged(CharSequence s, int start, int count, int after) { }
-            @Override
-            public void onTextChanged(CharSequence s, int start, int before, int count) { }
-            @Override
-            public void afterTextChanged(Editable s) {
-                editMessage.setTextColor(Color.RED);
-            }
-        });
+            });
+            editMessage.addTextChangedListener(new TextWatcher() {
+                @Override
+                public void beforeTextChanged(CharSequence s, int start, int count, int after) { }
+                @Override
+                public void onTextChanged(CharSequence s, int start, int before, int count) { }
+                @Override
+                public void afterTextChanged(Editable s) {
+                    editMessage.setTextColor(Color.RED);
+                }
+            });
+        }
+        else {
+            btnSend.setEnabled(false);
+            btnAttach.setEnabled(false);
+            editMessage.setEnabled(false);
+        }
 
         // 연결디바이스
         mRemoteDevice = ((MainActivity) getActivity()).getBTService().getRemoteDevice();
@@ -157,7 +174,6 @@ public class ConnectFragment extends Fragment implements View.OnClickListener {
                 break;
         }
     }
-
 
     /**
      * @desc 메시지 보내기
@@ -282,9 +298,11 @@ public class ConnectFragment extends Fragment implements View.OnClickListener {
     }
 
     // 파일전송
-    public void SendFile(Uri uri) {
-        String filename = Util.getFilenameFromUri(getContext(), uri);
-        byte[] bytes = Util.UriToByteArray(getContext(), uri);
-        ((MainActivity) getActivity()).getBTService().sendFile(filename, bytes);
+    public void SendFile(List<Uri> uris) {
+        for(Uri uri : uris) {
+            String filename = Util.getFilenameFromUri(getContext(), uri);
+            byte[] bytes = Util.UriToByteArray(getContext(), uri);
+            ((MainActivity) getActivity()).getBTService().sendFile(filename, bytes);
+        }
     }
 }

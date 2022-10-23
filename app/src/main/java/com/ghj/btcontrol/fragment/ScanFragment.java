@@ -188,14 +188,6 @@ public class ScanFragment extends Fragment implements View.OnClickListener {
     }
 
     /**
-     * @desc 연결화면으로 이동
-     */
-    private void moveToConnect() {
-        ((MainActivity) getActivity()).getBTService().cancelScanDevice();
-        NavHostFragment.findNavController(this).navigate(R.id.action_scanFragment_to_connectFragment);
-    }
-
-    /**
      * @desc enable on
      */
     public void stateOn() {
@@ -345,9 +337,13 @@ public class ScanFragment extends Fragment implements View.OnClickListener {
     /**
      * @desc connect success ACL
      */
-    public void connectSuccessACL() {
+    public void connectSuccessACL(boolean sender) {
         pdConnect.dismiss();
-        moveToConnect();
+        // 연결화면으로 이동
+        ((MainActivity) getActivity()).getBTService().cancelScanDevice();
+        Bundle bundle = new Bundle();
+        bundle.putBoolean("sender", sender);
+        NavHostFragment.findNavController(this).navigate(R.id.action_scanFragment_to_connectFragment, bundle);
     }
 
     /**

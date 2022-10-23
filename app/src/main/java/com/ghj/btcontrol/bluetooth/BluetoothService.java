@@ -15,10 +15,13 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
+import android.os.Looper;
 import android.os.Message;
 import android.provider.MediaStore;
 import android.text.TextUtils;
 import android.util.Log;
+
+import androidx.annotation.NonNull;
 
 import com.ghj.btcontrol.data.BTCConstants;
 import com.ghj.btcontrol.util.PermissionUtil;
@@ -317,9 +320,11 @@ public class BluetoothService {
                             mSocket.connect();
                             mBluetoothDataThread = new BluetoothDataThread(mSocket);
                             mBluetoothDataThread.start();
+
                             BluetoothDevice device = mSocket.getRemoteDevice();
                             Intent intent = new Intent(BTCConstants.BLUETOOTH_CONNECT_BROADCAST_ACTION);
                             Bundle bundle = new Bundle();
+                            bundle.putBoolean("sender", true);
                             bundle.putParcelable("device", device);
                             intent.putExtras(bundle);
                             mActivity.sendBroadcast(intent);
@@ -364,7 +369,7 @@ public class BluetoothService {
             baos.write(baText);
 
             if(mBluetoothDataThread!=null){
-                mBluetoothDataThread.write(baos.toByteArray());
+                mBluetoothDataThread.writeMessage(baos.toByteArray());
             }
         }
         catch (IOException e) {
@@ -394,13 +399,12 @@ public class BluetoothService {
             // 파일사이즈
             byte[] baFileSize = Util.IntToByteArray(bytes.length);
             baos.write(baFileSize);
-            Log.d(TAG, baos.toString());
 
             // 파일데이터
             baos.write(bytes);
 
             if(mBluetoothDataThread!=null){
-                mBluetoothDataThread.write(baos.toByteArray());
+                mBluetoothDataThread.writeMessage(baos.toByteArray());
             }
         }
         catch (IOException e) {
@@ -558,7 +562,14 @@ public class BluetoothService {
                 }
                 mRemoteDevice = intent.getParcelableExtra("device");
                 if(mRemoteDevice.getBondState() == BluetoothDevice.BOND_BONDED){
-                    mHandler.sendEmptyMessage(CONNECT_SUCCESS_ACL_HANDLER_CODE);
+                    boolean sender = intent.getBooleanExtra("sender", false);
+
+                    Message msg = new Message();
+                    msg.what = CONNECT_SUCCESS_ACL_HANDLER_CODE;
+                    Bundle bundle = new Bundle();
+                    bundle.putBoolean("sender", sender);
+                    msg.setData(bundle);
+                    mHandler.sendMessage(msg);
                 }
             }
         }
@@ -577,9 +588,11 @@ public class BluetoothService {
                     mSocket = mServerSocket.accept();
                     mBluetoothDataThread = new BluetoothDataThread(mSocket);
                     mBluetoothDataThread.start();
+
                     BluetoothDevice device = mSocket.getRemoteDevice();
                     Intent intent = new Intent(BTCConstants.BLUETOOTH_CONNECT_BROADCAST_ACTION);
                     Bundle bundle = new Bundle();
+                    bundle.putBoolean("sender", false);
                     bundle.putParcelable("device", device);
                     intent.putExtras(bundle);
                     mActivity.sendBroadcast(intent);
@@ -604,11 +617,21 @@ public class BluetoothService {
         InputStream mInputStream;
         OutputStream mOutputStream;
 
+        private static final int MSG_WRITE_START = 100;
+        private static final int MSG_WRITE_END = 101;
+
+        // send 쓰기 데이터목록
+        List<byte[]> mWriteDatas = new ArrayList<>();
+        WriteThread mWriteThread = null;
+
+        // write read 핸들러
+        DataHandler mDataHandler = new DataHandler();
+
 
         public BluetoothDataThread(BluetoothSocket socket){
             this.mBluetoothSocket = socket;
             try{
-                mInputStream = mBluetoothSocket.getInputStream();
+            mInputStream = mBluetoothSocket.getInputStream();
                 mOutputStream = mBluetoothSocket.getOutputStream();
             }catch (IOException e){
                 e.printStackTrace();
@@ -627,6 +650,18 @@ public class BluetoothService {
                 try{
                     Arrays.fill(buffer, (byte)0x00);
                     mInputStream.read(buffer, 0, 1);
+
+//                    if(buffer[0] == 0x00) {
+//                        new Thread(new Runnable() {
+//                            @Override
+//                            public void run() {
+//
+//                            }
+//                        }).start();
+//                    }
+//                    else if(buffer[0] == 0x01) {
+//
+//                    }
 
                     // 텍스트
                     if(buffer[0] == 0x00) {
@@ -697,42 +732,61 @@ public class BluetoothService {
         }
 
         //쓰기
-        public void write(byte[] message){
+        public void writeMessage(byte[] message){
             if(message.length == 0){
                 return;
             }
 
-            try{
-                mOutputStream.write(message);
-                mOutputStream.flush();
+            mWriteDatas.add(message);
 
-                // 텍스트
-                if(message[0] == 0x00) {
-                    String text = new String(Arrays.copyOfRange(message, 5, message.length), StandardCharsets.UTF_8);
+            // 텍스트
+            if(message[0] == 0x00) {
+                String text = new String(Arrays.copyOfRange(message, 5, message.length), StandardCharsets.UTF_8);
 
-                    Message msg = mHandler.obtainMessage();
-                    msg.what = BluetoothService.WRITE_MESSAGE_HANDLER_CODE;
-                    Bundle bundle = msg.getData();
-                    bundle.putString("message", text);
-                    msg.setData(bundle);
-                    mHandler.sendMessage(msg);
+                Message msg = mHandler.obtainMessage();
+                msg.what = BluetoothService.WRITE_MESSAGE_HANDLER_CODE;
+                Bundle bundle = msg.getData();
+                bundle.putString("message", text);
+                msg.setData(bundle);
+                mHandler.sendMessage(msg);
+            }
+            // 파일
+            else if(message[0] == 0x01) {
+                int filenameLen = Util.ByteArrayToInt(Arrays.copyOfRange(message, 1, 5));
+                String filename = new String(Arrays.copyOfRange(message, 5, 5+filenameLen), StandardCharsets.UTF_8);
+                int filesize = Util.ByteArrayToInt(Arrays.copyOfRange(message, 5+filenameLen, 5+filenameLen+4));
+
+                Message msg = mHandler.obtainMessage();
+                msg.what = BluetoothService.WRITE_FILE_HANDLER_CODE;
+                Bundle bundle = msg.getData();
+                bundle.putString("filename", filename);
+                bundle.putInt("filesize", filesize);
+                msg.setData(bundle);
+                mHandler.sendMessage(msg);
+            }
+
+            write();
+        }
+
+        private void write() {
+            if(!mSocket.isConnected()) {
+                Log.d(TAG, "WriteThread Socket not disconnected");
+                return;
+            }
+            if(mWriteDatas.isEmpty())
+                return;
+
+            synchronized ("WRITE") {
+                try {
+                    if (mWriteThread == null) {
+                        Log.d(TAG, "WriteThread START");
+                        mWriteThread = new WriteThread();
+                        mWriteThread.start();
+                    }
                 }
-                // 파일
-                else if(message[0] == 0x01) {
-                    int filenameLen = Util.ByteArrayToInt(Arrays.copyOfRange(message, 1, 5));
-                    String filename = new String(Arrays.copyOfRange(message, 5, 5+filenameLen), StandardCharsets.UTF_8);
-                    int filesize = Util.ByteArrayToInt(Arrays.copyOfRange(message, 5+filenameLen, 5+filenameLen+4));
-
-                    Message msg = mHandler.obtainMessage();
-                    msg.what = BluetoothService.WRITE_FILE_HANDLER_CODE;
-                    Bundle bundle = msg.getData();
-                    bundle.putString("filename", filename);
-                    bundle.putInt("filesize", filesize);
-                    msg.setData(bundle);
-                    mHandler.sendMessage(msg);
+                catch (Exception e) {
+                    e.printStackTrace();
                 }
-            }catch (IOException e){
-                e.printStackTrace();
             }
         }
 
@@ -752,6 +806,49 @@ public class BluetoothService {
                 }
                 catch (IOException e) {
                     e.printStackTrace();
+                }
+            }
+        }
+
+        // 쓰기 쓰레드
+        private class WriteThread extends Thread {
+            @Override
+            public void run() {
+                try {
+                    mDataHandler.sendEmptyMessage(MSG_WRITE_START);
+
+                    mOutputStream.write(mWriteDatas.get(0));
+                    mOutputStream.flush();
+
+                    mDataHandler.sendEmptyMessage(MSG_WRITE_END);
+                }
+                catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+
+        // 쓰기 읽기 핸들러
+        private class DataHandler extends Handler {
+            public DataHandler() {
+                super(Looper.getMainLooper());
+            }
+
+            @Override
+            public void handleMessage(@NonNull Message msg) {
+                // Send 전송
+                if(msg.what == MSG_WRITE_START) {
+
+                }
+                // Send 완료
+                if(msg.what == MSG_WRITE_END) {
+                    mWriteThread.interrupt();
+                    mWriteThread = null;
+                    if(mWriteDatas.size() > 0 ) {
+                        mWriteDatas.remove(0);
+                    }
+                    Log.d(TAG, "DataHandler MSG_WRITE_END");
+                    write();
                 }
             }
         }

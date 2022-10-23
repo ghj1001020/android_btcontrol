@@ -4,6 +4,7 @@ import android.Manifest;
 import android.app.Activity;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
+import android.content.ClipData;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
@@ -39,6 +40,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.lang.ref.WeakReference;
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
+import java.util.List;
 
 public class MainActivity extends BaseFragmentActivity {
 
@@ -58,14 +61,29 @@ public class MainActivity extends BaseFragmentActivity {
             new ActivityResultContracts.StartActivityForResult(),
             (ActivityResult result) -> {
                 if(result.getResultCode() == Activity.RESULT_OK) {
-                    if(result.getData() == null) return;
+                    if(result.getData() == null) {
+                        return;
+                    }
                     Uri uri = result.getData().getData();
+                    ClipData clipData = result.getData().getClipData();
+                    // 1개
                     if(uri != null) {
-                        Log.d(TAG, uri.getPath() + " , " + uri.toString());
-
+                        List<Uri> list = new ArrayList<>();
+                        list.add(uri);
                         if(getCurrentFragment() instanceof ConnectFragment) {
-
-                            ((ConnectFragment) getCurrentFragment()).SendFile(uri);
+                            ((ConnectFragment) getCurrentFragment()).SendFile(list);
+                        }
+                    }
+                    // 여러개
+                    else if(clipData != null) {
+                        List<Uri> list = new ArrayList<>();
+                        for(int i=0; i<clipData.getItemCount(); i++) {
+                            if( clipData.getItemAt(i).getUri() != null ) {
+                                list.add(clipData.getItemAt(i).getUri());
+                            }
+                        }
+                        if(getCurrentFragment() instanceof ConnectFragment) {
+                            ((ConnectFragment) getCurrentFragment()).SendFile(list);
                         }
                     }
                 }
@@ -194,8 +212,10 @@ public class MainActivity extends BaseFragmentActivity {
                 }
             }
             else if(msg.what == BluetoothService.CONNECT_SUCCESS_ACL_HANDLER_CODE){
+                Bundle bundle  = msg.getData();
+                boolean sender = bundle.getBoolean("sender");
                 if( mActivity.get().getCurrentFragment() instanceof ScanFragment ) {
-                    ((ScanFragment) mActivity.get().getCurrentFragment()).connectSuccessACL();
+                    ((ScanFragment) mActivity.get().getCurrentFragment()).connectSuccessACL(sender);
                 }
             }
             else if(msg.what == BluetoothService.CONNECT_FAIL_HANDLER_CODE){
@@ -267,6 +287,7 @@ public class MainActivity extends BaseFragmentActivity {
     public void callSAF() {
         Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
         intent.addCategory(Intent.CATEGORY_OPENABLE);
+        intent.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true);
         intent.setType("*/*");
         mSAF.launch(intent);
     }
