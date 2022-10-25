@@ -271,6 +271,15 @@ public class MainActivity extends BaseFragmentActivity {
                     ((ConnectFragment) mActivity.get().getCurrentFragment()).writedFile(filename, filesize);
                 }
             }
+            else if(msg.what == BluetoothService.DATA_WRITE_START) {
+
+            }
+            else if(msg.what == BluetoothService.DATA_WRITE_PROGRESS) {
+
+            }
+            else if(msg.what == BluetoothService.DATA_WRITE_END) {
+
+            }
         }
     }
 

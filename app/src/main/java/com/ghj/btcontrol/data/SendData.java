@@ -31,6 +31,9 @@ public class SendData {
     }
 
     public String getText() {
+        if(TextUtils.isEmpty(text)) {
+            return "";
+        }
         return text;
     }
 

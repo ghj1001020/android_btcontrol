@@ -5,13 +5,10 @@ import static com.ghj.btcontrol.data.BTCConstants.MY_TEXT;
 
 import android.app.ProgressDialog;
 import android.bluetooth.BluetoothDevice;
-import android.content.Intent;
 import android.graphics.Color;
 import android.net.Uri;
-import android.os.Build;
 import android.os.Bundle;
 import android.text.Editable;
-import android.text.Html;
 import android.text.TextWatcher;
 import android.view.KeyEvent;
 import android.view.LayoutInflater;
@@ -22,21 +19,24 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.LinearLayout;
-import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
+import androidx.recyclerview.widget.RecyclerView;
 
 import com.ghj.btcontrol.BaseFragmentActivity;
 import com.ghj.btcontrol.MainActivity;
 import com.ghj.btcontrol.R;
+import com.ghj.btcontrol.adapter.AdapterConnect;
 import com.ghj.btcontrol.data.ConnectData;
+import com.ghj.btcontrol.data.SendData;
 import com.ghj.btcontrol.util.PermissionUtil;
 import com.ghj.btcontrol.util.Util;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public class ConnectFragment extends Fragment implements View.OnClickListener {
@@ -54,6 +54,11 @@ public class ConnectFragment extends Fragment implements View.OnClickListener {
 
     BluetoothDevice mRemoteDevice;
     String mRemoteName;
+
+    // 메시지 목록
+    RecyclerView rvMessage;
+    AdapterConnect mAdapterConnect;
+    List<ConnectData> mConnectDatas = new ArrayList<>();
 
 
     public ConnectFragment() {}
@@ -94,6 +99,7 @@ public class ConnectFragment extends Fragment implements View.OnClickListener {
         btnSend = view.findViewById(R.id.btnSend);
         btnAttach = view.findViewById(R.id.btnAttach);
         boxEdit = view.findViewById(R.id.boxEdit);
+        rvMessage = view.findViewById(R.id.rvMessage);
 
         btnBack.setOnClickListener(this);
         btnClear.setOnClickListener(this);
@@ -174,6 +180,9 @@ public class ConnectFragment extends Fragment implements View.OnClickListener {
                 txtRType.setText("Unknown");
                 break;
         }
+
+        mAdapterConnect = new AdapterConnect(getContext(), mConnectDatas);
+        rvMessage.setAdapter(mAdapterConnect);
     }
 
     /**
@@ -192,7 +201,8 @@ public class ConnectFragment extends Fragment implements View.OnClickListener {
      * @desc 메시지 지우기
      */
     public void ClearMessage(){
-
+        mConnectDatas.clear();
+        mAdapterConnect.notifyDataSetChanged();
     }
 
     /**
@@ -250,7 +260,6 @@ public class ConnectFragment extends Fragment implements View.OnClickListener {
     // 파일전송 읽기
     public void readedFile(String filename, int filesize) {
         String message = filename + " , " + Util.CalculateFileSize(filesize);
-
     }
 
     /**

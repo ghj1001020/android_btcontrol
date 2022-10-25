@@ -1,5 +1,8 @@
 package com.ghj.btcontrol.bluetooth;
 
+import static com.ghj.btcontrol.data.BTCConstants.MY_FILE;
+import static com.ghj.btcontrol.data.BTCConstants.MY_TEXT;
+
 import android.app.Activity;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
@@ -71,6 +74,10 @@ public class BluetoothService {
     public final static int WRITE_MESSAGE_HANDLER_CODE = 4001;
     public final static int READ_FILE_HANDLER_CODE = 4002;
     public final static int WRITE_FILE_HANDLER_CODE = 4003;
+    public final static int DATA_WRITE_START = 4004;
+    public final static int DATA_WRITE_PROGRESS = 4005;
+    public final static int DATA_WRITE_END = 4006;
+
 
 
     BluetoothAdapter mBTAdapter;
@@ -690,7 +697,7 @@ public class BluetoothService {
             if(TextUtils.isEmpty(text)) {
                 return;
             }
-            mSendData.add(new SendData(0, text));
+            mSendData.add(new SendData(MY_TEXT, text));
 
             Message msg = mHandler.obtainMessage();
             msg.what = BluetoothService.WRITE_MESSAGE_HANDLER_CODE;
@@ -706,7 +713,7 @@ public class BluetoothService {
             if(uri == null) {
                 return;
             }
-            mSendData.add(new SendData(1, uri, filename, filesize));
+            mSendData.add(new SendData(MY_FILE, uri, filename, filesize));
 
             Message msg = mHandler.obtainMessage();
             msg.what = BluetoothService.WRITE_FILE_HANDLER_CODE;
@@ -854,14 +861,16 @@ public class BluetoothService {
             public void handleMessage(@NonNull Message msg) {
                 // Send 시작
                 if(msg.what == MSG_WRITE_START) {
-
+                    mHandler.sendEmptyMessage(DATA_WRITE_START);
                 }
                 // Send 전송중
                 else if(msg.what == MSG_WRITE_PROGRESS) {
-
+                    mHandler.sendEmptyMessage(DATA_WRITE_PROGRESS);
                 }
                 // Send 완료
                 else if(msg.what == MSG_WRITE_END) {
+                    mHandler.sendEmptyMessage(DATA_WRITE_END);
+
                     mWriteThread.interrupt();
                     mWriteThread = null;
                     if(mSendData.size() > 0 ) {
