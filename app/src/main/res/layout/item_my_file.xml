@@ -29,6 +29,7 @@
         app:layout_constraintRight_toRightOf="parent">
 
         <TextView
+            android:id="@+id/txtFilename"
             android:textSize="16dp"
             android:textColor="#000"
             android:gravity="right"
@@ -37,6 +38,7 @@
             tools:text="파일명.txt"/>
 
         <TextView
+            android:id="@+id/txtFilesize"
             android:textSize="16dp"
             android:textColor="#000"
             android:gravity="right"
@@ -46,6 +48,7 @@
             tools:text="12.99KB"/>
 
         <TextView
+            android:id="@+id/txtProgress"
             android:textSize="16dp"
             android:textColor="#000"
             android:gravity="right"

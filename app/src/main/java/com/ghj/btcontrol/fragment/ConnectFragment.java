@@ -1,5 +1,8 @@
 package com.ghj.btcontrol.fragment;
 
+import static com.ghj.btcontrol.data.BTCConstants.MY_FILE;
+import static com.ghj.btcontrol.data.BTCConstants.MY_TEXT;
+
 import android.app.ProgressDialog;
 import android.bluetooth.BluetoothDevice;
 import android.content.Intent;
@@ -30,6 +33,7 @@ import androidx.fragment.app.Fragment;
 import com.ghj.btcontrol.BaseFragmentActivity;
 import com.ghj.btcontrol.MainActivity;
 import com.ghj.btcontrol.R;
+import com.ghj.btcontrol.data.ConnectData;
 import com.ghj.btcontrol.util.PermissionUtil;
 import com.ghj.btcontrol.util.Util;
 
@@ -41,11 +45,10 @@ public class ConnectFragment extends Fragment implements View.OnClickListener {
     private boolean mSender = false;
 
     ImageButton btnSend, btnBack, btnAttach;
-    TextView txtRName, txtRMAC, txtRType, txtMessage;
+    TextView txtRName, txtRMAC, txtRType;
     EditText editMessage;
     ProgressDialog mProgressDialog;
     Button btnClear;
-    ScrollView scrMessage;
     LinearLayout boxEdit;
 
 
@@ -90,9 +93,7 @@ public class ConnectFragment extends Fragment implements View.OnClickListener {
         editMessage = view.findViewById(R.id.editMessage);
         btnSend = view.findViewById(R.id.btnSend);
         btnAttach = view.findViewById(R.id.btnAttach);
-        txtMessage = view.findViewById(R.id.txtMessage);
         boxEdit = view.findViewById(R.id.boxEdit);
-        scrMessage = view.findViewById(R.id.scrMessage);
 
         btnBack.setOnClickListener(this);
         btnClear.setOnClickListener(this);
@@ -176,14 +177,6 @@ public class ConnectFragment extends Fragment implements View.OnClickListener {
     }
 
     /**
-     * @desc 메시지 보내기
-     */
-    public void SendMessage(){
-        String message = editMessage.getText().toString();
-        ((MainActivity) getActivity()).getBTService().sendString(message);
-    }
-
-    /**
      * @desc byte[] to string
      */
     public String ByteArrToHexString(byte[] msgArr){
@@ -199,7 +192,7 @@ public class ConnectFragment extends Fragment implements View.OnClickListener {
      * @desc 메시지 지우기
      */
     public void ClearMessage(){
-        txtMessage.setText("");
+
     }
 
     /**
@@ -251,58 +244,48 @@ public class ConnectFragment extends Fragment implements View.OnClickListener {
 
     // 읽기
     public void readedMessage(String message) {
-        if(Build.VERSION.SDK_INT >= 24){
-            txtMessage.append(Html.fromHtml("<font color=#00A2D5>"+mRemoteName+" >></font><br/>", Html.FROM_HTML_MODE_COMPACT));
-            txtMessage.append(message+"\n");
-        }else{
-            txtMessage.append(Html.fromHtml("<font color=#00A2D5>"+mRemoteName+" >></font><br/>"));
-            txtMessage.append(message+"\n");
-        }
-    }
 
-    // 쓰기
-    public void writedMessage(String message) {
-        editMessage.setText("");
-        if(Build.VERSION.SDK_INT >= 24) {
-            txtMessage.append(Html.fromHtml("<font color=#FF4848>나 >></font><br/>", Html.FROM_HTML_MODE_COMPACT));
-            txtMessage.append(message+"\n");
-        }else{
-            txtMessage.append(Html.fromHtml("<font color=#FF4848>나 >></font><br/>"));
-            txtMessage.append(message+"\n");
-        }
     }
 
     // 파일전송 읽기
     public void readedFile(String filename, int filesize) {
         String message = filename + " , " + Util.CalculateFileSize(filesize);
-        if(Build.VERSION.SDK_INT >= 24){
-            txtMessage.append(Html.fromHtml("<font color=#00A2D5>"+mRemoteName+" >></font><br/>", Html.FROM_HTML_MODE_COMPACT));
-            txtMessage.append(message+"\n");
-        }else{
-            txtMessage.append(Html.fromHtml("<font color=#00A2D5>"+mRemoteName+" >></font><br/>"));
-            txtMessage.append(message+"\n");
-        }
+
     }
 
-    // 파일전송 쓰기
+    /**
+     * 보낸 메시지
+     */
+    public void writedMessage(String message) {
+        editMessage.setText("");
+        ConnectData data = new ConnectData(MY_TEXT, message);
+    }
+
+    /**
+     * 보낸 파일
+     */
     public void writedFile(String filename, int filesize) {
         String message = filename + " , " + Util.CalculateFileSize(filesize);
         editMessage.setText("");
-        if(Build.VERSION.SDK_INT >= 24) {
-            txtMessage.append(Html.fromHtml("<font color=#FF4848>나 >></font><br/>", Html.FROM_HTML_MODE_COMPACT));
-            txtMessage.append(message+"\n");
-        }else{
-            txtMessage.append(Html.fromHtml("<font color=#FF4848>나 >></font><br/>"));
-            txtMessage.append(message+"\n");
-        }
+        ConnectData data = new ConnectData(MY_FILE, filename, filesize, 0);
     }
 
-    // 파일전송
+    /**
+     * 메시지 보내기
+     */
+    public void SendMessage(){
+        String message = editMessage.getText().toString();
+        ((MainActivity) getActivity()).getBTService().send(message);
+    }
+
+    /**
+     * 파일 보내기
+     */
     public void SendFile(List<Uri> uris) {
         for(Uri uri : uris) {
             String filename = Util.getFilenameFromUri(getContext(), uri);
-            byte[] bytes = Util.UriToByteArray(getContext(), uri);
-            ((MainActivity) getActivity()).getBTService().sendFile(filename, bytes);
+            long filesize = Util.getFilesizeFromUri(getContext(), uri);
+            ((MainActivity) getActivity()).getBTService().send(uri, filename, filesize);
         }
     }
 }

@@ -29,6 +29,7 @@
         app:layout_constraintRight_toRightOf="parent">
 
         <TextView
+            android:id="@+id/txtText"
             android:textSize="16dp"
             android:textColor="#000"
             android:gravity="right"

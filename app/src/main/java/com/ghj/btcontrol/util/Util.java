@@ -4,6 +4,7 @@ import android.content.Context;
 import android.database.Cursor;
 import android.net.Uri;
 import android.provider.OpenableColumns;
+import android.text.TextUtils;
 import android.util.Log;
 
 import java.io.BufferedInputStream;
@@ -24,8 +25,8 @@ public class Util {
         try {
             cursor = context.getContentResolver().query(uri, null, null, null, null);
             if( cursor != null && cursor.moveToFirst() ) {
-                int index = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME);
-                filename = cursor.getString( index);
+                int nameIndex = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME);
+                filename = cursor.getString(nameIndex);
             }
         }
         finally {
@@ -34,6 +35,27 @@ public class Util {
             }
         }
         return filename;
+    }
+
+    /**
+     * Uri로 부터 파일사이즈 구하기
+     */
+    public static long getFilesizeFromUri(Context context, Uri uri) {
+        Cursor cursor = null;
+        long filesize = 0;
+        try {
+            cursor = context.getContentResolver().query(uri, null, null, null, null);
+            if( cursor != null && cursor.moveToFirst() ) {
+                int sizeIndex = cursor.getColumnIndex(OpenableColumns.SIZE);
+                filesize = cursor.getLong(sizeIndex);
+            }
+        }
+        finally {
+            if(cursor != null) {
+                cursor.close();
+            }
+        }
+        return filesize;
     }
 
     /**
@@ -82,6 +104,33 @@ public class Util {
     }
 
     /**
+     * long -> byte array 변환
+     */
+    public static byte[] LongToByteArray(long num) {
+        byte[] bytes = new byte[] {
+                (byte)((num & 0xFF000000) >> 56) ,
+                (byte)((num & 0xFF000000) >> 48) ,
+                (byte)((num & 0xFF000000) >> 40) ,
+                (byte)((num & 0xFF000000) >> 32) ,
+                (byte)((num & 0xFF000000) >> 24) ,
+                (byte)((num & 0x00FF0000) >> 16) ,
+                (byte)((num & 0x0000FF00) >> 8) ,
+                (byte)((num & 0x000000FF) >> 0)
+        };
+        return bytes;
+    }
+
+    /**
+     * byte array -> long 변환
+     */
+    public static long ByteArrayToLong(byte[] bytes) {
+        if(bytes == null || bytes.length == 0) {
+            return 0;
+        }
+        return ByteBuffer.wrap(bytes).getLong();
+    }
+
+    /**
      * filesize 계산
      */
     public static String CalculateFileSize(int bytes) {
@@ -93,6 +142,16 @@ public class Util {
             unitIdx++;
         }
         return Math.round(size*100)/100.0 + unit[unitIdx];
+    }
+
+    /**
+     * String -> byte array 변환
+     */
+    public static byte[] StringToByteArray(String message) {
+        if(TextUtils.isEmpty(message)) {
+            return new byte[]{};
+        }
+        return message.getBytes(StandardCharsets.UTF_8);
     }
 
     /**

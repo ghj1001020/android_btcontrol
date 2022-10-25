@@ -8,4 +8,10 @@ public class BTCConstants {
 
     public static final String APPNAME = "블루투스컨트롤";
     public static final String BLUETOOTH_CONNECT_BROADCAST_ACTION = "com.ghj.btcontrol.BTConnected";
+
+    // 데이터 통신타입
+    public static final int MY_TEXT = 0;
+    public static final int MY_FILE = 1;
+    public static final int YOUR_TEXT = 2;
+    public static final int YOUR_FILE = 3;
 }
