@@ -5,18 +5,21 @@ import android.text.TextUtils;
 
 public class SendData {
     int dataType = 0;   // 0-텍스트 , 1-파일
+    int seq = 0;    // 전송순서
     String text;    // 텍스트
     Uri uri;    // 파일
     String filename;    // 파일명
     long filesize;  // 파일사이즈
 
-    public SendData(int type, String text) {
+    public SendData(int type, int seq, String text) {
         this.dataType = type;
+        this.seq = seq;
         this.text = text;
     }
 
-    public SendData(int type, Uri uri, String filename, long filesize) {
+    public SendData(int type, int seq, Uri uri, String filename, long filesize) {
         this.dataType = type;
+        this.seq = seq;
         this.uri = uri;
         this.filename = filename;
         this.filesize = filesize;
@@ -66,5 +69,13 @@ public class SendData {
 
     public void setFilesize(long filesize) {
         this.filesize = filesize;
+    }
+
+    public int getSeq() {
+        return seq;
+    }
+
+    public void setSeq(int seq) {
+        this.seq = seq;
     }
 }

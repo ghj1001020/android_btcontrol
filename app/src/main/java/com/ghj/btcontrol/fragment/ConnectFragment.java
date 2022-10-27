@@ -31,6 +31,7 @@ import com.ghj.btcontrol.BaseFragmentActivity;
 import com.ghj.btcontrol.MainActivity;
 import com.ghj.btcontrol.R;
 import com.ghj.btcontrol.adapter.AdapterConnect;
+import com.ghj.btcontrol.data.BTCConstants;
 import com.ghj.btcontrol.data.ConnectData;
 import com.ghj.btcontrol.data.SendData;
 import com.ghj.btcontrol.util.PermissionUtil;
@@ -85,6 +86,8 @@ public class ConnectFragment extends Fragment implements View.OnClickListener {
         if(getArguments() != null){
             mSender = getArguments().getBoolean("sender", false);
         }
+
+        BTCConstants.DATA_SEQ = 0;
 
         //ui
         btnBack = (ImageButton)view.findViewById(R.id.btnBack);
@@ -265,18 +268,22 @@ public class ConnectFragment extends Fragment implements View.OnClickListener {
     /**
      * 보낸 메시지
      */
-    public void writedMessage(String message) {
+    public void writedMessage(int seq, String message) {
         editMessage.setText("");
-        ConnectData data = new ConnectData(MY_TEXT, message);
+        ConnectData data = new ConnectData(MY_TEXT, seq, message);
+        mAdapterConnect.addItem(data);
+        mAdapterConnect.notifyDataSetChanged();
     }
 
     /**
      * 보낸 파일
      */
-    public void writedFile(String filename, int filesize) {
+    public void writedFile(int seq, String filename, int filesize) {
         String message = filename + " , " + Util.CalculateFileSize(filesize);
         editMessage.setText("");
-        ConnectData data = new ConnectData(MY_FILE, filename, filesize, 0);
+        ConnectData data = new ConnectData(MY_FILE, seq, filename, filesize, 0);
+        mAdapterConnect.addItem(data);
+        mAdapterConnect.notifyDataSetChanged();
     }
 
     /**
@@ -284,7 +291,7 @@ public class ConnectFragment extends Fragment implements View.OnClickListener {
      */
     public void SendMessage(){
         String message = editMessage.getText().toString();
-        ((MainActivity) getActivity()).getBTService().send(message);
+        ((MainActivity) getActivity()).getBTService().send(BTCConstants.DATA_SEQ, message);
     }
 
     /**
@@ -294,7 +301,33 @@ public class ConnectFragment extends Fragment implements View.OnClickListener {
         for(Uri uri : uris) {
             String filename = Util.getFilenameFromUri(getContext(), uri);
             long filesize = Util.getFilesizeFromUri(getContext(), uri);
-            ((MainActivity) getActivity()).getBTService().send(uri, filename, filesize);
+            ((MainActivity) getActivity()).getBTService().send(BTCConstants.DATA_SEQ, uri, filename, filesize);
         }
+    }
+
+    /**
+     * 데이터 진행시작
+     */
+    public void dataStart(int seq) {
+        for(ConnectData item : mConnectDatas) {
+            if(item.getSeq() == seq) {
+                break;
+            }
+        }
+        mAdapterConnect.notifyDataSetChanged();
+    }
+
+    /**
+     * 데이터 진행
+     */
+    public void dataProgress(int seq, long progress) {
+
+    }
+
+    /**
+     * 데이터 진행종료
+     */
+    public void dataEnd(int seq) {
+
     }
 }

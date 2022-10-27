@@ -14,4 +14,7 @@ public class BTCConstants {
     public static final int MY_FILE = 1;
     public static final int YOUR_TEXT = 2;
     public static final int YOUR_FILE = 3;
+
+    // 데이터 통신 Sequence
+    public static int DATA_SEQ = 0;
 }

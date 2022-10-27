@@ -64,6 +64,10 @@ public class AdapterConnect extends RecyclerView.Adapter<RecyclerView.ViewHolder
         return mDatas.get(position).getDataType();
     }
 
+    public void addItem(ConnectData item) {
+        this.mDatas.add(item);
+    }
+
 
     public class HolderMyFile extends RecyclerView.ViewHolder {
         TextView txtFilename;

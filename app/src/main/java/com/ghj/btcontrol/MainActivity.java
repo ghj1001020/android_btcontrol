@@ -250,9 +250,10 @@ public class MainActivity extends BaseFragmentActivity {
             }
             else if(msg.what == BluetoothService.WRITE_MESSAGE_HANDLER_CODE ) {
                 Bundle data = msg.getData();
+                int seq = data.getInt("seq");
                 String message = data.getString("message");
                 if( mActivity.get().getCurrentFragment() instanceof ConnectFragment ) {
-                    ((ConnectFragment) mActivity.get().getCurrentFragment()).writedMessage(message);
+                    ((ConnectFragment) mActivity.get().getCurrentFragment()).writedMessage(seq, message);
                 }
             }
             else if( msg.what == BluetoothService.READ_FILE_HANDLER_CODE ) {
@@ -265,20 +266,34 @@ public class MainActivity extends BaseFragmentActivity {
             }
             else if(msg.what == BluetoothService.WRITE_FILE_HANDLER_CODE) {
                 Bundle data = msg.getData();
+                int seq = data.getInt("seq");
                 String filename = data.getString("filename");
                 int filesize = data.getInt("filesize");
                 if( mActivity.get().getCurrentFragment() instanceof ConnectFragment ) {
-                    ((ConnectFragment) mActivity.get().getCurrentFragment()).writedFile(filename, filesize);
+                    ((ConnectFragment) mActivity.get().getCurrentFragment()).writedFile(seq, filename, filesize);
                 }
             }
             else if(msg.what == BluetoothService.DATA_WRITE_START) {
-
+                Bundle data = msg.getData();
+                int seq = data.getInt("seq");
+                if( mActivity.get().getCurrentFragment() instanceof ConnectFragment ) {
+                    ((ConnectFragment) mActivity.get().getCurrentFragment()).dataStart(seq);
+                }
             }
             else if(msg.what == BluetoothService.DATA_WRITE_PROGRESS) {
-
+                Bundle data = msg.getData();
+                int seq = data.getInt("seq");
+                long progress = data.getLong("progress");
+                if( mActivity.get().getCurrentFragment() instanceof ConnectFragment ) {
+                    ((ConnectFragment) mActivity.get().getCurrentFragment()).dataProgress(seq, progress);
+                }
             }
             else if(msg.what == BluetoothService.DATA_WRITE_END) {
-
+                Bundle data = msg.getData();
+                int seq = data.getInt("seq");
+                if( mActivity.get().getCurrentFragment() instanceof ConnectFragment ) {
+                    ((ConnectFragment) mActivity.get().getCurrentFragment()).dataEnd(seq);
+                }
             }
         }
     }

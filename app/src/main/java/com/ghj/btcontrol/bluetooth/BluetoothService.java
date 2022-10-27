@@ -359,16 +359,16 @@ public class BluetoothService {
     }
 
     //문자보내기
-    public void send(String message){
+    public void send(int seq, String message){
         if(mBluetoothDataThread!=null){
-            mBluetoothDataThread.writeText(message);
+            mBluetoothDataThread.writeText(seq, message);
         }
     }
 
     //파일보내기
-    public void send(Uri uri, String filename, long filesize) {
+    public void send(int seq, Uri uri, String filename, long filesize) {
         if(mBluetoothDataThread!=null){
-            mBluetoothDataThread.writeFile(uri, filename, filesize);
+            mBluetoothDataThread.writeFile(seq, uri, filename, filesize);
         }
     }
 
@@ -693,15 +693,16 @@ public class BluetoothService {
         }
 
         //쓰기
-        public void writeText(String text) {
+        public void writeText(int seq, String text) {
             if(TextUtils.isEmpty(text)) {
                 return;
             }
-            mSendData.add(new SendData(MY_TEXT, text));
+            mSendData.add(new SendData(seq, MY_TEXT, text));
 
             Message msg = mHandler.obtainMessage();
             msg.what = BluetoothService.WRITE_MESSAGE_HANDLER_CODE;
             Bundle bundle = msg.getData();
+            bundle.putInt("seq", seq);
             bundle.putString("message", text);
             msg.setData(bundle);
             mHandler.sendMessage(msg);
@@ -709,15 +710,16 @@ public class BluetoothService {
             write();
         }
 
-        public void writeFile(Uri uri, String filename, long filesize) {
+        public void writeFile(int seq, Uri uri, String filename, long filesize) {
             if(uri == null) {
                 return;
             }
-            mSendData.add(new SendData(MY_FILE, uri, filename, filesize));
+            mSendData.add(new SendData(seq, MY_FILE, uri, filename, filesize));
 
             Message msg = mHandler.obtainMessage();
             msg.what = BluetoothService.WRITE_FILE_HANDLER_CODE;
             Bundle bundle = msg.getData();
+            bundle.putInt("seq", seq);
             bundle.putString("filename", filename);
             bundle.putLong("filesize", filesize);
             msg.setData(bundle);
@@ -727,14 +729,14 @@ public class BluetoothService {
         }
 
         private void write() {
-            if(!mSocket.isConnected()) {
-                Log.d(TAG, "WriteThread Socket not disconnected");
-                return;
-            }
-            if(mSendData.isEmpty())
-                return;
-
             synchronized ("WRITE") {
+                if(!mSocket.isConnected()) {
+                    Log.d(TAG, "WriteThread Socket not disconnected");
+                    return;
+                }
+                if(mSendData.isEmpty())
+                    return;
+
                 try {
                     if (mWriteThread == null) {
                         Log.d(TAG, "WriteThread START");
@@ -770,18 +772,18 @@ public class BluetoothService {
 
         // 쓰기 쓰레드
         private class WriteThread extends Thread {
-            int mId;
-
-//            public WriteThread(int id) {
-//                this.mId = id;
-//            }
+            public WriteThread() { }
 
             @Override
             public void run() {
                 try {
-                    mDataHandler.sendEmptyMessage(MSG_WRITE_START);
-
                     SendData sendData = mSendData.get(0);
+                    int seq = sendData.getSeq();
+
+                    Bundle sBundle = new Bundle();
+                    sBundle.putInt("seq", seq);
+                    sendHandlerMessage(MSG_WRITE_START, mDataHandler, sBundle);
+
                     if(sendData.getDataType() == 0) {
                         String message = sendData.getText();
 
@@ -827,12 +829,10 @@ public class BluetoothService {
                             byte[] buffer = new byte[1024*1024];
                             int len = 0;
                             while( (len = bis.read(buffer)) > 0) {
-                                Message msg = mDataHandler.obtainMessage();
-                                Bundle bundle = new Bundle();
-                                bundle.putLong("SENDBYTES", len);
-                                msg.setData(bundle);
-                                msg.what = MSG_WRITE_PROGRESS;
-                                mDataHandler.sendMessage(msg);
+                                Bundle pBundle = new Bundle();
+                                pBundle.putInt("seq", seq);
+                                pBundle.putLong("progress", len);
+                                sendHandlerMessage(MSG_WRITE_PROGRESS, mDataHandler, pBundle);
 
                                 mOutputStream.write(buffer, 0, len);
                                 mOutputStream.flush();
@@ -843,7 +843,9 @@ public class BluetoothService {
                         }
                     }
 
-                    mDataHandler.sendEmptyMessage(MSG_WRITE_END);
+                    Bundle eBundle = new Bundle();
+                    eBundle.putInt("seq", seq);
+                    sendHandlerMessage(MSG_WRITE_END, mDataHandler, eBundle);
                 }
                 catch (IOException e) {
                     e.printStackTrace();
@@ -861,7 +863,8 @@ public class BluetoothService {
             public void handleMessage(@NonNull Message msg) {
                 // Send 시작
                 if(msg.what == MSG_WRITE_START) {
-                    mHandler.sendEmptyMessage(DATA_WRITE_START);
+                    Bundle bundle = msg.getData();
+                    sendHandlerMessage(DATA_WRITE_START, mHandler, bundle);
                 }
                 // Send 전송중
                 else if(msg.what == MSG_WRITE_PROGRESS) {
@@ -910,5 +913,13 @@ public class BluetoothService {
             e.printStackTrace();
             return null;
         }
+    }
+
+    // 핸들러메시지
+    public void sendHandlerMessage(int code, Handler handler, Bundle bundle) {
+        Message msg = handler.obtainMessage();
+        msg.what = code;
+        msg.setData(bundle);
+        handler.sendMessage(msg);
     }
 }

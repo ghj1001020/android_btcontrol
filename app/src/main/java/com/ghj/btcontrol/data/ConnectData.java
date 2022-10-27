@@ -3,18 +3,21 @@ package com.ghj.btcontrol.data;
 public class ConnectData {
 
     private int dataType;
+    private int seq;
     private String text;
     private String filename;
     private int filesize;
     private int progress;
 
-    public ConnectData(int type, String text) {
+    public ConnectData(int type, int seq, String text) {
         this.dataType = type;
+        this.seq = seq;
         this.text = text;
     }
 
-    public ConnectData(int type, String filename, int filesize, int progress) {
+    public ConnectData(int type, int seq, String filename, int filesize, int progress) {
         this.dataType = type;
+        this.seq = seq;
         this.filename = filename;
         this.filesize = filesize;
         this.progress = progress;
@@ -58,5 +61,13 @@ public class ConnectData {
 
     public void setProgress(int progress) {
         this.progress = progress;
+    }
+
+    public int getSeq() {
+        return seq;
+    }
+
+    public void setSeq(int seq) {
+        this.seq = seq;
     }
 }
