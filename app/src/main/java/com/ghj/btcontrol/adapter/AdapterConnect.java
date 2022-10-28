@@ -50,7 +50,7 @@ public class AdapterConnect extends RecyclerView.Adapter<RecyclerView.ViewHolder
         else if(holder instanceof HolderMyFile) {
             ((HolderMyFile) holder).txtFilename.setText(data.getFilename());
             ((HolderMyFile) holder).txtFilesize.setText("" + data.getFilesize());
-            ((HolderMyFile) holder).txtProgress.setText("" + data.getProgress());
+            ((HolderMyFile) holder).txtProgress.setText("" + data.getState());
         }
     }
 

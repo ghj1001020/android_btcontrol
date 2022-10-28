@@ -1,5 +1,7 @@
 package com.ghj.btcontrol;
 
+import static com.ghj.btcontrol.data.BTCConstants.DATA_SEQ;
+
 import android.Manifest;
 import android.app.Activity;
 import android.bluetooth.BluetoothAdapter;
@@ -259,7 +261,7 @@ public class MainActivity extends BaseFragmentActivity {
             else if( msg.what == BluetoothService.READ_FILE_HANDLER_CODE ) {
                 Bundle data = msg.getData();
                 String filename = data.getString("filename");
-                int filesize = data.getInt("filesize");
+                long filesize = data.getLong("filesize");
                 if( mActivity.get().getCurrentFragment() instanceof ConnectFragment ) {
                     ((ConnectFragment) mActivity.get().getCurrentFragment()).readedFile(filename, filesize);
                 }
@@ -268,7 +270,7 @@ public class MainActivity extends BaseFragmentActivity {
                 Bundle data = msg.getData();
                 int seq = data.getInt("seq");
                 String filename = data.getString("filename");
-                int filesize = data.getInt("filesize");
+                long filesize = data.getLong("filesize");
                 if( mActivity.get().getCurrentFragment() instanceof ConnectFragment ) {
                     ((ConnectFragment) mActivity.get().getCurrentFragment()).writedFile(seq, filename, filesize);
                 }
@@ -293,6 +295,18 @@ public class MainActivity extends BaseFragmentActivity {
                 int seq = data.getInt("seq");
                 if( mActivity.get().getCurrentFragment() instanceof ConnectFragment ) {
                     ((ConnectFragment) mActivity.get().getCurrentFragment()).dataEnd(seq);
+                }
+            }
+            else if(msg.what == BluetoothService.DATA_READ_PROGRESS) {
+                Bundle data = msg.getData();
+                long progress = data.getLong("progress");
+                if( mActivity.get().getCurrentFragment() instanceof ConnectFragment ) {
+                    ((ConnectFragment) mActivity.get().getCurrentFragment()).dataProgress(DATA_SEQ, progress);
+                }
+            }
+            else if(msg.what == BluetoothService.DATA_READ_END) {
+                if( mActivity.get().getCurrentFragment() instanceof ConnectFragment ) {
+                    ((ConnectFragment) mActivity.get().getCurrentFragment()).dataEnd(DATA_SEQ);
                 }
             }
         }

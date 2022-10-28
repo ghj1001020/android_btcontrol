@@ -6,21 +6,24 @@ public class ConnectData {
     private int seq;
     private String text;
     private String filename;
-    private int filesize;
-    private int progress;
+    private long filesize;
+    private long progress = 0;
+    String state = "";
 
     public ConnectData(int type, int seq, String text) {
         this.dataType = type;
+        this.state = "Waiting...";
         this.seq = seq;
         this.text = text;
     }
 
-    public ConnectData(int type, int seq, String filename, int filesize, int progress) {
+    public ConnectData(int type, int seq, String filename, long filesize) {
         this.dataType = type;
+        this.state = "Waiting...";
         this.seq = seq;
         this.filename = filename;
         this.filesize = filesize;
-        this.progress = progress;
+        this.progress = 0;
     }
 
     public int getDataType() {
@@ -47,7 +50,7 @@ public class ConnectData {
         this.filename = filename;
     }
 
-    public int getFilesize() {
+    public long getFilesize() {
         return filesize;
     }
 
@@ -55,12 +58,12 @@ public class ConnectData {
         this.filesize = filesize;
     }
 
-    public int getProgress() {
+    public long getProgress() {
         return progress;
     }
 
-    public void setProgress(int progress) {
-        this.progress = progress;
+    public void setProgress(long progress) {
+        this.progress += progress;
     }
 
     public int getSeq() {
@@ -69,5 +72,13 @@ public class ConnectData {
 
     public void setSeq(int seq) {
         this.seq = seq;
+    }
+
+    public String getState() {
+        return state;
+    }
+
+    public void setState(String state) {
+        this.state = state;
     }
 }

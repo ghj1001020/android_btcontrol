@@ -1,7 +1,10 @@
 package com.ghj.btcontrol.fragment;
 
+import static com.ghj.btcontrol.data.BTCConstants.DATA_SEQ;
 import static com.ghj.btcontrol.data.BTCConstants.MY_FILE;
 import static com.ghj.btcontrol.data.BTCConstants.MY_TEXT;
+import static com.ghj.btcontrol.data.BTCConstants.YOUR_FILE;
+import static com.ghj.btcontrol.data.BTCConstants.YOUR_TEXT;
 
 import android.app.ProgressDialog;
 import android.bluetooth.BluetoothDevice;
@@ -33,12 +36,13 @@ import com.ghj.btcontrol.R;
 import com.ghj.btcontrol.adapter.AdapterConnect;
 import com.ghj.btcontrol.data.BTCConstants;
 import com.ghj.btcontrol.data.ConnectData;
-import com.ghj.btcontrol.data.SendData;
 import com.ghj.btcontrol.util.PermissionUtil;
 import com.ghj.btcontrol.util.Util;
 
+import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 public class ConnectFragment extends Fragment implements View.OnClickListener {
 
@@ -255,14 +259,21 @@ public class ConnectFragment extends Fragment implements View.OnClickListener {
         ((MainActivity) getActivity()).getBTService().closeSocket();
     }
 
+
     // 읽기
     public void readedMessage(String message) {
-
+        ConnectData data = new ConnectData(YOUR_TEXT, DATA_SEQ, message);
+        DATA_SEQ++;
+        mAdapterConnect.addItem(data);
+        mAdapterConnect.notifyDataSetChanged();
     }
 
     // 파일전송 읽기
-    public void readedFile(String filename, int filesize) {
-        String message = filename + " , " + Util.CalculateFileSize(filesize);
+    public void readedFile(String filename, long filesize) {
+        ConnectData data = new ConnectData(YOUR_FILE, DATA_SEQ, filename, filesize);
+        DATA_SEQ++;
+        mAdapterConnect.addItem(data);
+        mAdapterConnect.notifyDataSetChanged();
     }
 
     /**
@@ -278,10 +289,9 @@ public class ConnectFragment extends Fragment implements View.OnClickListener {
     /**
      * 보낸 파일
      */
-    public void writedFile(int seq, String filename, int filesize) {
-        String message = filename + " , " + Util.CalculateFileSize(filesize);
+    public void writedFile(int seq, String filename, long filesize) {
         editMessage.setText("");
-        ConnectData data = new ConnectData(MY_FILE, seq, filename, filesize, 0);
+        ConnectData data = new ConnectData(MY_FILE, seq, filename, filesize);
         mAdapterConnect.addItem(data);
         mAdapterConnect.notifyDataSetChanged();
     }
@@ -292,6 +302,7 @@ public class ConnectFragment extends Fragment implements View.OnClickListener {
     public void SendMessage(){
         String message = editMessage.getText().toString();
         ((MainActivity) getActivity()).getBTService().send(BTCConstants.DATA_SEQ, message);
+        DATA_SEQ++;
     }
 
     /**
@@ -302,6 +313,7 @@ public class ConnectFragment extends Fragment implements View.OnClickListener {
             String filename = Util.getFilenameFromUri(getContext(), uri);
             long filesize = Util.getFilesizeFromUri(getContext(), uri);
             ((MainActivity) getActivity()).getBTService().send(BTCConstants.DATA_SEQ, uri, filename, filesize);
+            DATA_SEQ++;
         }
     }
 
@@ -311,6 +323,7 @@ public class ConnectFragment extends Fragment implements View.OnClickListener {
     public void dataStart(int seq) {
         for(ConnectData item : mConnectDatas) {
             if(item.getSeq() == seq) {
+                item.setState("시작");
                 break;
             }
         }
@@ -321,13 +334,34 @@ public class ConnectFragment extends Fragment implements View.OnClickListener {
      * 데이터 진행
      */
     public void dataProgress(int seq, long progress) {
+        for(ConnectData item : mConnectDatas) {
+            if(item.getSeq() == seq) {
+                item.setProgress(progress);
+                long p = item.getProgress();
+                long t = item.getFilesize();
 
+                String mode = (item.getDataType() == MY_TEXT || item.getDataType() == MY_FILE) ? "전송" : "수신";
+                String strP = NumberFormat.getInstance(Locale.KOREA).format(p);
+                String strT = NumberFormat.getInstance(Locale.KOREA).format(t);
+                double percent = Math.round((double) p / t * 100) / 100.0;
+                item.setState(mode + " " + strP + " / " + strT + " (" + percent + "%)");
+                break;
+            }
+        }
+        mAdapterConnect.notifyDataSetChanged();
     }
 
     /**
      * 데이터 진행종료
      */
     public void dataEnd(int seq) {
-
+        for(ConnectData item : mConnectDatas) {
+            if(item.getSeq() == seq) {
+                String state = (item.getDataType() == MY_TEXT || item.getDataType() == MY_FILE) ? "전송 완료" : "수신 완료";
+                item.setState(state);
+                break;
+            }
+        }
+        mAdapterConnect.notifyDataSetChanged();
     }
 }

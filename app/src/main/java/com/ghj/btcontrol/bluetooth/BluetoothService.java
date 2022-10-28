@@ -77,7 +77,8 @@ public class BluetoothService {
     public final static int DATA_WRITE_START = 4004;
     public final static int DATA_WRITE_PROGRESS = 4005;
     public final static int DATA_WRITE_END = 4006;
-
+    public final static int DATA_READ_PROGRESS = 4007;
+    public final static int DATA_READ_END = 4008;
 
 
     BluetoothAdapter mBTAdapter;
@@ -612,23 +613,11 @@ public class BluetoothService {
                     Arrays.fill(buffer, (byte)0x00);
                     mInputStream.read(buffer, 0, 1);
 
-//                    if(buffer[0] == 0x00) {
-//                        new Thread(new Runnable() {
-//                            @Override
-//                            public void run() {
-//
-//                            }
-//                        }).start();
-//                    }
-//                    else if(buffer[0] == 0x01) {
-//
-//                    }
-
                     // 텍스트
                     if(buffer[0] == 0x00) {
                         Arrays.fill(buffer, (byte)0x00);
-                        mInputStream.read(buffer, 0, 4);
-                        int toReadLen = Util.ByteArrayToInt(buffer);
+                        mInputStream.read(buffer, 0, 8);
+                        long toReadLen = Util.ByteArrayToLong(buffer);
                         int len = 0;
                         ByteArrayOutputStream baos = new ByteArrayOutputStream();
                         Arrays.fill(buffer, (byte)0x00);
@@ -640,12 +629,9 @@ public class BluetoothService {
                         }
 
                         String message = baos.toString("UTF-8");
-                        Message msg = mHandler.obtainMessage();
-                        msg.what = READ_MESSAGE_HANDLER_CODE;
-                        Bundle bundle = msg.getData();
+                        Bundle bundle = new Bundle();
                         bundle.putString("message", message);
-                        msg.setData(bundle);
-                        mHandler.sendMessage(msg);
+                        sendHandlerMessage(READ_MESSAGE_HANDLER_CODE, mHandler, bundle);
                     }
                     // 파일
                     else if(buffer[0] == 0x01) {
@@ -658,16 +644,13 @@ public class BluetoothService {
                         String filename = Util.ByteArrayToString(buffer);
                         // 파일사이즈
                         Arrays.fill(buffer, (byte)0x00);
-                        mInputStream.read(buffer, 0, 4);
-                        int filesize = Util.ByteArrayToInt(buffer);
+                        mInputStream.read(buffer, 0, 8);
+                        long filesize = Util.ByteArrayToLong(buffer);
 
-                        Message msg = mHandler.obtainMessage();
-                        msg.what = READ_FILE_HANDLER_CODE;
-                        Bundle bundle = msg.getData();
-                        bundle.putString("filename", filename);
-                        bundle.putInt("filesize", filesize);
-                        msg.setData(bundle);
-                        mHandler.sendMessage(msg);
+                        Bundle sBundle = new Bundle();
+                        sBundle.putString("filename", filename);
+                        sBundle.putLong("filesize", filesize);
+                        sendHandlerMessage(READ_FILE_HANDLER_CODE, mHandler, sBundle);
 
                         // 파일 다운로드
                         OutputStream os = getOutputStream(filename);
@@ -676,12 +659,19 @@ public class BluetoothService {
                         while( (len = mInputStream.read(buffer)) != -1 ) {
                             os.write(buffer, 0, len);
                             os.flush();
+
+                            Bundle pBundle = new Bundle();
+                            pBundle.putLong("progress", len);
+                            sendHandlerMessage(DATA_READ_PROGRESS, mHandler, pBundle);
+
                             sum += len;
                             if(filesize <= sum) {
                                 break;
                             }
                         }
                         os.close();
+
+                        sendHandlerMessage(DATA_READ_END, mHandler);
                     }
                 }catch (IOException e){
                     e.printStackTrace();
@@ -868,11 +858,13 @@ public class BluetoothService {
                 }
                 // Send 전송중
                 else if(msg.what == MSG_WRITE_PROGRESS) {
-                    mHandler.sendEmptyMessage(DATA_WRITE_PROGRESS);
+                    Bundle bundle = msg.getData();
+                    sendHandlerMessage(DATA_WRITE_PROGRESS, mHandler, bundle);
                 }
                 // Send 완료
                 else if(msg.what == MSG_WRITE_END) {
-                    mHandler.sendEmptyMessage(DATA_WRITE_END);
+                    Bundle bundle = msg.getData();
+                    sendHandlerMessage(DATA_WRITE_END, mHandler, bundle);
 
                     mWriteThread.interrupt();
                     mWriteThread = null;
@@ -921,5 +913,9 @@ public class BluetoothService {
         msg.what = code;
         msg.setData(bundle);
         handler.sendMessage(msg);
+    }
+
+    public void sendHandlerMessage(int code, Handler handler) {
+        handler.sendEmptyMessage(code);
     }
 }

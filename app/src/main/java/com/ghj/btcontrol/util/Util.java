@@ -133,7 +133,7 @@ public class Util {
     /**
      * filesize 계산
      */
-    public static String CalculateFileSize(int bytes) {
+    public static String CalculateFileSize(long bytes) {
         String[] unit = new String[]{"bytes", "KB", "MB", "GB"};
         int unitIdx = 0;
         double size = bytes;

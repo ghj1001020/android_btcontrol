@@ -1,5 +1,7 @@
 package com.ghj.btcontrol;
 
+import static com.ghj.btcontrol.data.BTCConstants.DATA_SEQ;
+
 import android.Manifest;
 import android.app.ProgressDialog;
 import android.bluetooth.BluetoothDevice;
@@ -315,7 +317,7 @@ public class ConnectActivity extends AppCompatActivity {
                 message += "0A";
             }
         }
-        mBTService.send(message);
+        mBTService.send(DATA_SEQ, message);
     }
 
     /**
