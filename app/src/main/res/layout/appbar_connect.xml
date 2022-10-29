@@ -54,25 +54,6 @@
 
             </LinearLayout>
 
-            <LinearLayout
-                android:orientation="horizontal"
-                android:layout_marginRight="12dp"
-                android:gravity="center_vertical"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content">
-
-                <Button
-                    android:id="@+id/btnClear"
-                    android:text="CLEAR"
-                    android:textSize="13dp"
-                    android:textColor="@color/textColor"
-                    style="?android:attr/borderlessButtonStyle"
-                    android:background="@drawable/app_btn"
-                    android:layout_width="50dp"
-                    android:layout_height="wrap_content"/>
-
-            </LinearLayout>
-
         </LinearLayout>
 
     </androidx.appcompat.widget.Toolbar>

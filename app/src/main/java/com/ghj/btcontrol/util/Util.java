@@ -3,9 +3,11 @@ package com.ghj.btcontrol.util;
 import android.content.Context;
 import android.database.Cursor;
 import android.net.Uri;
+import android.provider.MediaStore;
 import android.provider.OpenableColumns;
 import android.text.TextUtils;
 import android.util.Log;
+import android.webkit.MimeTypeMap;
 
 import java.io.BufferedInputStream;
 import java.io.ByteArrayOutputStream;
@@ -56,6 +58,23 @@ public class Util {
             }
         }
         return filesize;
+    }
+
+    /**
+     * Uri로 부터 mime-type 구하기
+     */
+    public static String getMimeTypeFromFilename(String filename) {
+        String mimeType = "";
+        try {
+            String ext = filename.substring(filename.lastIndexOf(".")+1);
+            mimeType = MimeTypeMap.getSingleton().getMimeTypeFromExtension(ext);
+        }
+        finally { }
+
+        if(TextUtils.isEmpty(mimeType)) {
+            mimeType = "application/octet-stream";
+        }
+        return mimeType;
     }
 
     /**
@@ -141,7 +160,7 @@ public class Util {
             size = size / 1024.0;
             unitIdx++;
         }
-        return Math.round(size*100)/100.0 + unit[unitIdx];
+        return Math.round(size*100)/100.0  + " " + unit[unitIdx];
     }
 
     /**

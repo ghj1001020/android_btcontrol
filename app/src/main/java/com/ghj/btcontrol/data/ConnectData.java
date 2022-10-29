@@ -1,5 +1,7 @@
 package com.ghj.btcontrol.data;
 
+import android.net.Uri;
+
 public class ConnectData {
 
     private int dataType;
@@ -7,6 +9,7 @@ public class ConnectData {
     private String text;
     private String filename;
     private long filesize;
+    private Uri fileuri;
     private long progress = 0;
     String state = "";
 
@@ -17,12 +20,13 @@ public class ConnectData {
         this.text = text;
     }
 
-    public ConnectData(int type, int seq, String filename, long filesize) {
+    public ConnectData(int type, int seq, String filename, long filesize, Uri fileuri) {
         this.dataType = type;
         this.state = "Waiting...";
         this.seq = seq;
         this.filename = filename;
         this.filesize = filesize;
+        this.fileuri = fileuri;
         this.progress = 0;
     }
 
@@ -54,10 +58,6 @@ public class ConnectData {
         return filesize;
     }
 
-    public void setFilesize(int filesize) {
-        this.filesize = filesize;
-    }
-
     public long getProgress() {
         return progress;
     }
@@ -80,5 +80,17 @@ public class ConnectData {
 
     public void setState(String state) {
         this.state = state;
+    }
+
+    public void setFilesize(long filesize) {
+        this.filesize = filesize;
+    }
+
+    public Uri getFileuri() {
+        return fileuri;
+    }
+
+    public void setFileuri(Uri fileuri) {
+        this.fileuri = fileuri;
     }
 }

@@ -616,17 +616,13 @@ public class BluetoothService {
                     // 텍스트
                     if(buffer[0] == 0x00) {
                         Arrays.fill(buffer, (byte)0x00);
-                        mInputStream.read(buffer, 0, 8);
-                        long toReadLen = Util.ByteArrayToLong(buffer);
-                        int len = 0;
+                        mInputStream.read(buffer, 0, 4);
+                        int toReadLen = Util.ByteArrayToInt(buffer);
+
+                        byte[] data = new byte[1024*1024];
+                        mInputStream.read(data);
                         ByteArrayOutputStream baos = new ByteArrayOutputStream();
-                        Arrays.fill(buffer, (byte)0x00);
-                        while( (len = mInputStream.read(buffer)) != -1 ){
-                            baos.write( buffer, 0, len );
-                            if(toReadLen <= baos.size()) {
-                                break;
-                            }
-                        }
+                        baos.write(data, 0, toReadLen);
 
                         String message = baos.toString("UTF-8");
                         Bundle bundle = new Bundle();
@@ -646,18 +642,22 @@ public class BluetoothService {
                         Arrays.fill(buffer, (byte)0x00);
                         mInputStream.read(buffer, 0, 8);
                         long filesize = Util.ByteArrayToLong(buffer);
+                        // 파일Uri
+                        Uri fileUri = getFileUri(filename);
 
                         Bundle sBundle = new Bundle();
                         sBundle.putString("filename", filename);
                         sBundle.putLong("filesize", filesize);
+                        sBundle.putParcelable("fileuri", fileUri);
                         sendHandlerMessage(READ_FILE_HANDLER_CODE, mHandler, sBundle);
 
                         // 파일 다운로드
-                        OutputStream os = getOutputStream(filename);
-                        int len = 0, sum = 0;
-                        Arrays.fill(buffer, (byte)0x00);
-                        while( (len = mInputStream.read(buffer)) != -1 ) {
-                            os.write(buffer, 0, len);
+                        OutputStream os = getOutputStream(fileUri);
+                        int len = 0;
+                        long sum = 0;
+                        byte[] data = new byte[1024*1024];
+                        while( (len = mInputStream.read(data)) != -1 ) {
+                            os.write(data, 0, len);
                             os.flush();
 
                             Bundle pBundle = new Bundle();
@@ -687,7 +687,7 @@ public class BluetoothService {
             if(TextUtils.isEmpty(text)) {
                 return;
             }
-            mSendData.add(new SendData(seq, MY_TEXT, text));
+            mSendData.add(new SendData(MY_TEXT, seq, text));
 
             Message msg = mHandler.obtainMessage();
             msg.what = BluetoothService.WRITE_MESSAGE_HANDLER_CODE;
@@ -704,7 +704,7 @@ public class BluetoothService {
             if(uri == null) {
                 return;
             }
-            mSendData.add(new SendData(seq, MY_FILE, uri, filename, filesize));
+            mSendData.add(new SendData(MY_FILE, seq, uri, filename, filesize));
 
             Message msg = mHandler.obtainMessage();
             msg.what = BluetoothService.WRITE_FILE_HANDLER_CODE;
@@ -712,6 +712,7 @@ public class BluetoothService {
             bundle.putInt("seq", seq);
             bundle.putString("filename", filename);
             bundle.putLong("filesize", filesize);
+            bundle.putParcelable("fileuri", uri);
             msg.setData(bundle);
             mHandler.sendMessage(msg);
 
@@ -878,18 +879,17 @@ public class BluetoothService {
         }
     }
 
-    // 파일다운로드 Output 스트림
-    private OutputStream getOutputStream(String filename) {
-        OutputStream fos = null;
+    // 파일다운로드 Uri
+    private Uri getFileUri(String filename) {
+        Uri fileUri = null;
         try {
             if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
-                Uri fileUri = null;
+
                 ContentValues cv = new ContentValues();
                 cv.put(MediaStore.Files.FileColumns.DISPLAY_NAME, filename);
-                cv.put(MediaStore.Files.FileColumns.MIME_TYPE, "application/octet-stream");
+                cv.put(MediaStore.Files.FileColumns.MIME_TYPE, Util.getMimeTypeFromFilename(filename));
                 cv.put(MediaStore.Files.FileColumns.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS + File.separator + BTCConstants.APPNAME);
                 fileUri = mActivity.getContentResolver().insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, cv);
-                fos = mActivity.getContentResolver().openOutputStream(fileUri);
             }
             else {
                 File dir = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS) + File.separator + BTCConstants.APPNAME);
@@ -897,14 +897,30 @@ public class BluetoothService {
                     dir.mkdir();
                 }
                 File file = new File(dir, filename);
-                fos = new FileOutputStream(file);
+//            fos = new FileOutputStream(file);
             }
-            return fos;
+        }
+        catch (Exception e) {
+            e.printStackTrace();
+        }
+        return fileUri;
+    }
+
+    // 파일다운로드 Output 스트림
+    private OutputStream getOutputStream(Uri uri) {
+        OutputStream fos = null;
+        try {
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
+                fos = mActivity.getContentResolver().openOutputStream(uri);
+            }
+            else {
+
+            }
         }
         catch (IOException e) {
             e.printStackTrace();
-            return null;
         }
+        return fos;
     }
 
     // 핸들러메시지

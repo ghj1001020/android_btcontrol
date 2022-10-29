@@ -1,6 +1,8 @@
 package com.ghj.btcontrol.adapter;
 
+import static com.ghj.btcontrol.data.BTCConstants.MY_FILE;
 import static com.ghj.btcontrol.data.BTCConstants.MY_TEXT;
+import static com.ghj.btcontrol.data.BTCConstants.YOUR_TEXT;
 
 import android.content.Context;
 import android.view.LayoutInflater;
@@ -13,19 +15,26 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.ghj.btcontrol.R;
 import com.ghj.btcontrol.data.ConnectData;
+import com.ghj.btcontrol.util.Util;
 
 import java.util.List;
 
 public class AdapterConnect extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
 
     Context mContext;
+    String mRemoteName;
     List<ConnectData> mDatas;
+    IConnectListener mListener;
 
-    public AdapterConnect(Context context, List<ConnectData> datas) {
+    public AdapterConnect(Context context, String remoteName, List<ConnectData> datas) {
         this.mContext = context;
+        this.mRemoteName = remoteName;
         this.mDatas = datas;
     }
 
+    public void setConnectListener(IConnectListener listener) {
+        this.mListener = listener;
+    }
 
     @NonNull
     @Override
@@ -34,9 +43,17 @@ public class AdapterConnect extends RecyclerView.Adapter<RecyclerView.ViewHolder
             View view = LayoutInflater.from(mContext).inflate(R.layout.item_my_text, parent, false);
             return new HolderMyText(view);
         }
-        else {
+        else if(viewType == MY_FILE) {
             View view = LayoutInflater.from(mContext).inflate(R.layout.item_my_file, parent, false);
             return new HolderMyFile(view);
+        }
+        else if(viewType == YOUR_TEXT) {
+            View view = LayoutInflater.from(mContext).inflate(R.layout.item_your_text, parent, false);
+            return new HolderYourText(view);
+        }
+        else {
+            View view = LayoutInflater.from(mContext).inflate(R.layout.item_your_file, parent, false);
+            return new HolderYourFile(view);
         }
     }
 
@@ -49,9 +66,25 @@ public class AdapterConnect extends RecyclerView.Adapter<RecyclerView.ViewHolder
         }
         else if(holder instanceof HolderMyFile) {
             ((HolderMyFile) holder).txtFilename.setText(data.getFilename());
-            ((HolderMyFile) holder).txtFilesize.setText("" + data.getFilesize());
-            ((HolderMyFile) holder).txtProgress.setText("" + data.getState());
+            ((HolderMyFile) holder).txtFilesize.setText(Util.CalculateFileSize(data.getFilesize()));
+            ((HolderMyFile) holder).txtProgress.setText(data.getState());
         }
+        else if(holder instanceof HolderYourText) {
+            ((HolderYourText) holder).txtDeviceName.setText(mRemoteName);
+            ((HolderYourText) holder).txtText.setText(data.getText());
+        }
+        else if(holder instanceof HolderYourFile) {
+            ((HolderYourFile) holder).txtDeviceName.setText(mRemoteName);
+            ((HolderYourFile) holder).txtFilename.setText(data.getFilename());
+            ((HolderYourFile) holder).txtFilesize.setText(Util.CalculateFileSize(data.getFilesize()));
+            ((HolderYourFile) holder).txtProgress.setText(data.getState());
+        }
+
+        holder.itemView.setOnClickListener(v -> {
+            if(mListener != null) {
+                mListener.onMessageClick(data);
+            }
+        });
     }
 
     @Override

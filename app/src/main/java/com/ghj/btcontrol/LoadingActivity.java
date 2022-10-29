@@ -52,7 +52,7 @@ public class LoadingActivity extends BaseActivity {
                 startActivity(intent);
                 finish();
             }
-        }.sendEmptyMessageDelayed(0, 1000);
+        }.sendEmptyMessageDelayed(0, 1500);
     }
 
 

@@ -8,6 +8,10 @@ import static com.ghj.btcontrol.data.BTCConstants.YOUR_TEXT;
 
 import android.app.ProgressDialog;
 import android.bluetooth.BluetoothDevice;
+import android.content.ClipData;
+import android.content.ClipboardManager;
+import android.content.Context;
+import android.content.Intent;
 import android.graphics.Color;
 import android.net.Uri;
 import android.os.Bundle;
@@ -18,7 +22,6 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.inputmethod.EditorInfo;
-import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.LinearLayout;
@@ -34,6 +37,7 @@ import com.ghj.btcontrol.BaseFragmentActivity;
 import com.ghj.btcontrol.MainActivity;
 import com.ghj.btcontrol.R;
 import com.ghj.btcontrol.adapter.AdapterConnect;
+import com.ghj.btcontrol.adapter.IConnectListener;
 import com.ghj.btcontrol.data.BTCConstants;
 import com.ghj.btcontrol.data.ConnectData;
 import com.ghj.btcontrol.util.PermissionUtil;
@@ -53,7 +57,6 @@ public class ConnectFragment extends Fragment implements View.OnClickListener {
     TextView txtRName, txtRMAC, txtRType;
     EditText editMessage;
     ProgressDialog mProgressDialog;
-    Button btnClear;
     LinearLayout boxEdit;
 
 
@@ -91,11 +94,10 @@ public class ConnectFragment extends Fragment implements View.OnClickListener {
             mSender = getArguments().getBoolean("sender", false);
         }
 
-        BTCConstants.DATA_SEQ = 0;
+        BTCConstants.DATA_SEQ = -1;
 
         //ui
         btnBack = (ImageButton)view.findViewById(R.id.btnBack);
-        btnClear = (Button)view.findViewById(R.id.btnClear);
         txtRName = view.findViewById(R.id.txtRName);
         txtRMAC = view.findViewById(R.id.txtRMAC);
         txtRType = view.findViewById(R.id.txtRType);
@@ -109,7 +111,6 @@ public class ConnectFragment extends Fragment implements View.OnClickListener {
         rvMessage = view.findViewById(R.id.rvMessage);
 
         btnBack.setOnClickListener(this);
-        btnClear.setOnClickListener(this);
 
         if(mSender) {
             btnSend.setOnClickListener(this);
@@ -188,7 +189,35 @@ public class ConnectFragment extends Fragment implements View.OnClickListener {
                 break;
         }
 
-        mAdapterConnect = new AdapterConnect(getContext(), mConnectDatas);
+        mAdapterConnect = new AdapterConnect(getContext(), mRemoteName, mConnectDatas);
+        mAdapterConnect.setConnectListener(new IConnectListener() {
+            @Override
+            public void onMessageClick(ConnectData data) {
+                if(data.getDataType() == MY_TEXT || data.getDataType() == YOUR_TEXT) {
+                    String text = data.getText();
+                    ClipboardManager cm = (ClipboardManager) getContext().getSystemService(Context.CLIPBOARD_SERVICE);
+                    ClipData clip = ClipData.newPlainText("BTControl", text);
+                    cm.setPrimaryClip(clip);
+                    Toast.makeText(getContext(), "클립보드에 복사 되었습니다.", Toast.LENGTH_SHORT).show();
+                }
+                else if(data.getDataType() == YOUR_FILE){
+                    Toast.makeText(getContext(), BTCConstants.DOWNLOAD_DIR_NAME, Toast.LENGTH_SHORT).show();
+
+                    try {
+                        Uri uri = data.getFileuri();
+                        String mimeType = Util.getMimeTypeFromFilename(data.getFilename());
+
+                        Intent intent = new Intent(Intent.ACTION_VIEW);
+                        intent.setFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION|Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
+                        intent.setDataAndType(uri, mimeType);
+                        startActivity(intent);
+                    }
+                    catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                }
+            }
+        });
         rvMessage.setAdapter(mAdapterConnect);
     }
 
@@ -202,14 +231,6 @@ public class ConnectFragment extends Fragment implements View.OnClickListener {
         message = new String(msgArr);
         message = message.replaceAll("\r", "\\\\r").replaceAll("\n", "\\\\n");
         return message;
-    }
-
-    /**
-     * @desc 메시지 지우기
-     */
-    public void ClearMessage(){
-        mConnectDatas.clear();
-        mAdapterConnect.notifyDataSetChanged();
     }
 
     /**
@@ -229,9 +250,6 @@ public class ConnectFragment extends Fragment implements View.OnClickListener {
                 break;
             case R.id.btnSend:
                 SendMessage();
-                break;
-            case R.id.btnClear:
-                ClearMessage();
                 break;
             case R.id.btnAttach:
                 ((MainActivity) getActivity()).callSAF();
@@ -262,16 +280,16 @@ public class ConnectFragment extends Fragment implements View.OnClickListener {
 
     // 읽기
     public void readedMessage(String message) {
-        ConnectData data = new ConnectData(YOUR_TEXT, DATA_SEQ, message);
         DATA_SEQ++;
+        ConnectData data = new ConnectData(YOUR_TEXT, DATA_SEQ, message);
         mAdapterConnect.addItem(data);
         mAdapterConnect.notifyDataSetChanged();
     }
 
     // 파일전송 읽기
-    public void readedFile(String filename, long filesize) {
-        ConnectData data = new ConnectData(YOUR_FILE, DATA_SEQ, filename, filesize);
+    public void readedFile(String filename, long filesize, Uri fileuri) {
         DATA_SEQ++;
+        ConnectData data = new ConnectData(YOUR_FILE, DATA_SEQ, filename, filesize, fileuri);
         mAdapterConnect.addItem(data);
         mAdapterConnect.notifyDataSetChanged();
     }
@@ -289,9 +307,9 @@ public class ConnectFragment extends Fragment implements View.OnClickListener {
     /**
      * 보낸 파일
      */
-    public void writedFile(int seq, String filename, long filesize) {
+    public void writedFile(int seq, String filename, long filesize, Uri fileuri) {
         editMessage.setText("");
-        ConnectData data = new ConnectData(MY_FILE, seq, filename, filesize);
+        ConnectData data = new ConnectData(MY_FILE, seq, filename, filesize, fileuri);
         mAdapterConnect.addItem(data);
         mAdapterConnect.notifyDataSetChanged();
     }
@@ -300,9 +318,9 @@ public class ConnectFragment extends Fragment implements View.OnClickListener {
      * 메시지 보내기
      */
     public void SendMessage(){
+        DATA_SEQ++;
         String message = editMessage.getText().toString();
         ((MainActivity) getActivity()).getBTService().send(BTCConstants.DATA_SEQ, message);
-        DATA_SEQ++;
     }
 
     /**
@@ -312,8 +330,8 @@ public class ConnectFragment extends Fragment implements View.OnClickListener {
         for(Uri uri : uris) {
             String filename = Util.getFilenameFromUri(getContext(), uri);
             long filesize = Util.getFilesizeFromUri(getContext(), uri);
-            ((MainActivity) getActivity()).getBTService().send(BTCConstants.DATA_SEQ, uri, filename, filesize);
             DATA_SEQ++;
+            ((MainActivity) getActivity()).getBTService().send(BTCConstants.DATA_SEQ, uri, filename, filesize);
         }
     }
 
@@ -343,7 +361,7 @@ public class ConnectFragment extends Fragment implements View.OnClickListener {
                 String mode = (item.getDataType() == MY_TEXT || item.getDataType() == MY_FILE) ? "전송" : "수신";
                 String strP = NumberFormat.getInstance(Locale.KOREA).format(p);
                 String strT = NumberFormat.getInstance(Locale.KOREA).format(t);
-                double percent = Math.round((double) p / t * 100) / 100.0;
+                double percent = Math.round((double) p / t * 100 * 100.0) / 100.0;
                 item.setState(mode + " " + strP + " / " + strT + " (" + percent + "%)");
                 break;
             }
