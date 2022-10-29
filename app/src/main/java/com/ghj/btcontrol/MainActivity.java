@@ -13,9 +13,11 @@ import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Environment;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.Message;
+import android.provider.MediaStore;
 import android.util.Log;
 
 import androidx.activity.result.ActivityResult;
@@ -24,6 +26,7 @@ import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.core.app.ActivityCompat;
+import androidx.core.content.FileProvider;
 import androidx.fragment.app.FragmentManager;
 import androidx.fragment.app.FragmentTransaction;
 import androidx.navigation.NavController;
@@ -31,6 +34,7 @@ import androidx.navigation.Navigation;
 import androidx.navigation.fragment.NavHostFragment;
 
 import com.ghj.btcontrol.bluetooth.BluetoothService;
+import com.ghj.btcontrol.data.BTCConstants;
 import com.ghj.btcontrol.fragment.ConnectFragment;
 import com.ghj.btcontrol.fragment.ScanFragment;
 import com.ghj.btcontrol.util.PermissionUtil;
@@ -38,6 +42,7 @@ import com.ghj.btcontrol.util.Util;
 
 import java.io.BufferedInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.lang.ref.WeakReference;
@@ -107,9 +112,27 @@ public class MainActivity extends BaseFragmentActivity {
         mBTService = BluetoothService.getBluetoothService(this, mBTHandler);
     }
 
+    public static Uri TEMP_URI;
     @Override
     public void onCreateAfter() {
-
+//        File dir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS);
+//        if(!dir.exists()) {
+//            dir.mkdir();
+//        }
+//        File file = new File(dir, "1.jpg");
+//        TEMP_URI = Uri.fromFile(file);
+//        TEMP_URI = Uri.parse(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS).getPath() + "/1.jpg");
+//        Log.d("aaaaa", TEMP_URI.getPath());
+//
+//
+//        Uri uri = FileProvider.getUriForFile(getApplicationContext(), BuildConfig.APPLICATION_ID + ".provider", file);
+//        Log.d("aaaaa", uri.getPath());
+//
+//        Intent intent = new Intent(Intent.ACTION_VIEW);
+//        intent.setFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION|Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
+//        intent.setDataAndType(TEMP_URI, "*/*");
+//        intent.putExtra(MediaStore.EXTRA_OUTPUT, TEMP_URI);
+//        startActivity(Intent.createChooser(intent, ""));
     }
 
     /**

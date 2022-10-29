@@ -14,6 +14,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
@@ -193,10 +194,32 @@ public class BluetoothService {
     //블루투스 연결
     public boolean isConnected() {
         if(mBTAdapter == null) return false;
-        if(isEnabled()) return false;
+        if(!isEnabled()) return false;
         if(mSocket == null) return false;
 
         return mSocket.isConnected();
+    }
+
+    //블루투스 재연결
+    public boolean reConnect() {
+        if(mBTAdapter == null) return false;
+        if(!isEnabled()) return false;
+        if(mSocket == null) return false;
+
+        if(!PermissionUtil.checkBluetoothPermission(mActivity)) {
+            return false;
+        }
+
+        try {
+            if(!mSocket.isConnected()) {
+                mSocket.connect();
+            }
+            return true;
+        }
+        catch (IOException e) {
+            e.printStackTrace();
+            return false;
+        }
     }
 
     //기기 검색하기
@@ -883,7 +906,7 @@ public class BluetoothService {
     private Uri getFileUri(String filename) {
         Uri fileUri = null;
         try {
-            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
 
                 ContentValues cv = new ContentValues();
                 cv.put(MediaStore.Files.FileColumns.DISPLAY_NAME, filename);

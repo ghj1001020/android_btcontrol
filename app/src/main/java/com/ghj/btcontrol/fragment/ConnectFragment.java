@@ -154,11 +154,9 @@ public class ConnectFragment extends Fragment implements View.OnClickListener {
     @Override
     public void onResume() {
         super.onResume();
-        if( ((MainActivity) getActivity()).getBTService().isConnected() ) {
-            Toast.makeText(getContext(), "Connected", Toast.LENGTH_SHORT).show();
-        }
-        else {
-            Toast.makeText(getContext(), "Disconnected", Toast.LENGTH_SHORT).show();
+        if( !((MainActivity) getActivity()).getBTService().isConnected() ) {
+            ((MainActivity) getActivity()).getBTService().closeSocket();
+            CloseConnect();
         }
     }
 
