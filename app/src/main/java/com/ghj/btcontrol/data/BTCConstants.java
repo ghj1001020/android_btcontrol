@@ -15,7 +15,9 @@ public class BTCConstants {
     public static final String BLUETOOTH_CONNECT_BROADCAST_ACTION = "com.ghj.btcontrol.BTConnected";
 
     // 다운로드 폴더
-    public static final String DOWNLOAD_DIR = Environment.DIRECTORY_DOWNLOADS + File.separator + BTCConstants.APPNAME;
+    public static File getDownloadDir() {
+        return new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS) + File.separator + BTCConstants.APPNAME);
+    }
 
     // 다운로드 폴더명
     public static final String DOWNLOAD_DIR_NAME = "내부저장소 > " + Environment.DIRECTORY_DOWNLOADS + " > " + BTCConstants.APPNAME + " 폴더에 저장 되었습니다.";

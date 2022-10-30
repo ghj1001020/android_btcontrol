@@ -25,7 +25,9 @@ import android.text.TextUtils;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
+import androidx.core.content.FileProvider;
 
+import com.ghj.btcontrol.BuildConfig;
 import com.ghj.btcontrol.data.BTCConstants;
 import com.ghj.btcontrol.data.SendData;
 import com.ghj.btcontrol.util.PermissionUtil;
@@ -675,11 +677,12 @@ public class BluetoothService {
                         sendHandlerMessage(READ_FILE_HANDLER_CODE, mHandler, sBundle);
 
                         // 파일 다운로드
-                        OutputStream os = getOutputStream(fileUri);
+                        OutputStream os = getOutputStream(fileUri, filename);
                         int len = 0;
                         long sum = 0;
                         byte[] data = new byte[1024*1024];
-                        while( (len = mInputStream.read(data)) != -1 ) {
+                        long toLen = filesize - sum < 1024 * 1024 ? filesize - sum : 1024 * 1024;
+                        while( (len = mInputStream.read(data,0, (int) toLen)) != -1 ) {
                             os.write(data, 0, len);
                             os.flush();
 
@@ -688,9 +691,11 @@ public class BluetoothService {
                             sendHandlerMessage(DATA_READ_PROGRESS, mHandler, pBundle);
 
                             sum += len;
+                            toLen = filesize - sum < 1024 * 1024 ? filesize - sum : 1024 * 1024;
                             if(filesize <= sum) {
                                 break;
                             }
+                            Arrays.fill(data, (byte) 0x00);
                         }
                         os.close();
 
@@ -744,7 +749,7 @@ public class BluetoothService {
 
         private void write() {
             synchronized ("WRITE") {
-                if(!mSocket.isConnected()) {
+                if(mSocket == null || !mSocket.isConnected()) {
                     Log.d(TAG, "WriteThread Socket not disconnected");
                     return;
                 }
@@ -915,12 +920,12 @@ public class BluetoothService {
                 fileUri = mActivity.getContentResolver().insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, cv);
             }
             else {
-                File dir = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS) + File.separator + BTCConstants.APPNAME);
+                File dir = BTCConstants.getDownloadDir();
                 if(!dir.exists()) {
                     dir.mkdir();
                 }
                 File file = new File(dir, filename);
-//            fos = new FileOutputStream(file);
+                fileUri = FileProvider.getUriForFile(mActivity, BuildConfig.APPLICATION_ID + ".provider", file);
             }
         }
         catch (Exception e) {
@@ -930,14 +935,19 @@ public class BluetoothService {
     }
 
     // 파일다운로드 Output 스트림
-    private OutputStream getOutputStream(Uri uri) {
+    private OutputStream getOutputStream(Uri uri, String filename) {
         OutputStream fos = null;
         try {
             if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
                 fos = mActivity.getContentResolver().openOutputStream(uri);
             }
             else {
-
+                File dir = BTCConstants.getDownloadDir();
+                if(!dir.exists()) {
+                    dir.mkdir();
+                }
+                File file = new File(dir, filename);
+                fos = new FileOutputStream(file);
             }
         }
         catch (IOException e) {

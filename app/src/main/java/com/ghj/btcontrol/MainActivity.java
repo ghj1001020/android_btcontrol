@@ -115,24 +115,7 @@ public class MainActivity extends BaseFragmentActivity {
     public static Uri TEMP_URI;
     @Override
     public void onCreateAfter() {
-//        File dir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS);
-//        if(!dir.exists()) {
-//            dir.mkdir();
-//        }
-//        File file = new File(dir, "1.jpg");
-//        TEMP_URI = Uri.fromFile(file);
-//        TEMP_URI = Uri.parse(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS).getPath() + "/1.jpg");
-//        Log.d("aaaaa", TEMP_URI.getPath());
-//
-//
-//        Uri uri = FileProvider.getUriForFile(getApplicationContext(), BuildConfig.APPLICATION_ID + ".provider", file);
-//        Log.d("aaaaa", uri.getPath());
-//
-//        Intent intent = new Intent(Intent.ACTION_VIEW);
-//        intent.setFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION|Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
-//        intent.setDataAndType(TEMP_URI, "*/*");
-//        intent.putExtra(MediaStore.EXTRA_OUTPUT, TEMP_URI);
-//        startActivity(Intent.createChooser(intent, ""));
+
     }
 
     /**

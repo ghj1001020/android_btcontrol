@@ -9,7 +9,7 @@ public class ConnectData {
     private String text;
     private String filename;
     private long filesize;
-    private Uri fileuri;
+    private Uri fileuri;    // 파일 open uri
     private long progress = 0;
     String state = "";
 

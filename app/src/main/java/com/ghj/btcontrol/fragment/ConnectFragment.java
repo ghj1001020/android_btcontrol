@@ -113,6 +113,7 @@ public class ConnectFragment extends Fragment implements View.OnClickListener {
         btnBack.setOnClickListener(this);
 
         if(mSender) {
+            boxEdit.setVisibility(View.VISIBLE);
             btnSend.setOnClickListener(this);
             btnAttach.setOnClickListener(this);
             editMessage.setOnEditorActionListener(new TextView.OnEditorActionListener() {
@@ -140,6 +141,7 @@ public class ConnectFragment extends Fragment implements View.OnClickListener {
             });
         }
         else {
+            boxEdit.setVisibility(View.GONE);
             btnSend.setEnabled(false);
             btnAttach.setEnabled(false);
             editMessage.setEnabled(false);
